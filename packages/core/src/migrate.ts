@@ -8,10 +8,26 @@ export type Migration = {
 };
 
 /**
- * Migration list (T5.3 skeleton). Product migration `001` lands in T5.4.
+ * Migration list (T5.3 skeleton; T5.4 adds `001`).
  * Keep ordered: runner applies pending IDs in array order.
  */
-export const MIGRATIONS: readonly Migration[] = [];
+export const MIGRATIONS: readonly Migration[] = [
+  {
+    id: "001",
+    up(db) {
+      // Placeholder only — Days/Check-ins/etc. land on later boards.
+      db.exec(`
+CREATE TABLE IF NOT EXISTS schema_meta (
+  key TEXT PRIMARY KEY NOT NULL,
+  value TEXT NOT NULL
+);
+`);
+      db.query(
+        "INSERT INTO schema_meta (key, value) VALUES (?, ?)",
+      ).run("product_schema", "001-empty");
+    },
+  },
+];
 
 const MIGRATIONS_TABLE = `
 CREATE TABLE IF NOT EXISTS schema_migrations (
