@@ -7,7 +7,7 @@ Own how the product idea in [spec/](../spec/AGENTS.md) becomes a running system.
 ## Ownership
 
 - Runtime architecture and stack (Bun workspaces, Mastra, Grammy, SQLite)
-- Sobrina core vs channel adapters (`@sobrina/core`, `@sobrina/telegram`)
+- Sobri core vs channel adapters (`@sobri/core`, `@sobri/telegram`)
 - Deploy and env naming (not values)
 - In-repo ticket system + theme boards ([tickets.md](tickets.md))
 
@@ -17,7 +17,7 @@ Does not own product vision (`spec/`) or glossary (`CONTEXT.md`).
 
 - Must not weaken `spec/` product contracts
 - Adapters own I/O only; channel tools call core verbs
-- Product name / agent person: **Sobrina** (Sobri + Character faces: see [character-tasks.md](character-tasks.md) T70–T71)
+- Product name / agent person: **Sobri** (Character faces: see [character-tasks.md](character-tasks.md) T70–T71)
 - No secrets in repo
 - `askWithOptions` must enforce **caption length limit** (exact max when implemented)
 - Build tickets live under `tech/` — not in `spec/`

@@ -4,7 +4,7 @@ DOX is a hierarchy of `AGENTS.md` work contracts. Agent must follow DOX across a
 
 ## Project
 
-**Sobrina** — Telegram group sobriety companion. Conversational Check-ins, Reminder + Deadline rhythm, Grace Token (заморозка), chat memory, agentic Sessions. Russian UI.
+**Sobri** — Telegram group sobriety companion. Conversational Check-ins, Reminder + Deadline rhythm, Grace Token (заморозка), chat memory, agentic Sessions. Russian UI.
 
 | Doc | Role |
 |-----|------|

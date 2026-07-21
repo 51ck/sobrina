@@ -1,8 +1,8 @@
-# Sobrina
+# Sobri
 
 Telegram group sobriety companion — agentic core, conversational Check-ins, Reminder + Deadline rhythm.
 
-**Status:** Bun workspace monorepo scaffold (`@sobrina/core`, `@sobrina/telegram`). Architecture and tickets: [`tech/`](tech/).
+**Status:** Bun workspace monorepo scaffold (`@sobri/core`, `@sobri/telegram`). Architecture and tickets: [`tech/`](tech/).
 
 **Local gate:** `bun run lint` (oxlint on `packages`) and `bun run typecheck` (`tsc --noEmit` across workspace packages).
 
@@ -24,4 +24,4 @@ Telegram group sobriety companion — agentic core, conversational Check-ins, Re
 
 ## Name
 
-Product and agent person: **Sobrina**.
+Product and agent person: **Sobri**.

@@ -2,7 +2,7 @@
 
 Product contracts: [`spec/`](../spec/AGENTS.md), glossary [`CONTEXT.md`](../CONTEXT.md), ADRs [`docs/adr/`](../docs/adr/). This doc is **how we build** — not a rewrite of the idea.
 
-Product / agent person: **Sobrina**.
+Product / agent person: **Sobri**.
 
 ## Stack (locked for Phase 1 build)
 
@@ -10,10 +10,10 @@ Product / agent person: **Sobrina**.
 |-------|--------|------|
 | Language | TypeScript | App and agent logic |
 | Runtime / packages | **Bun** workspaces | Install, scripts, tests, local run |
-| Agent framework | **Mastra** | Sobrina agent, tools, model calls |
+| Agent framework | **Mastra** | Sobri agent, tools, model calls |
 | Telegram | **Grammy** | Group channel adapter |
 | Persistence | **SQLite** | Durable ledger + chat memory + settings |
-| Packages | `@sobrina/core`, `@sobrina/telegram` | Core domain vs channel I/O |
+| Packages | `@sobri/core`, `@sobri/telegram` | Core domain vs channel I/O |
 
 Deploy shape (Compose / image registry) is decided when ops tickets land — not required to start foundation.
 
@@ -40,16 +40,16 @@ Exact oxlint/TypeScript versions and hook path are foundation-board decisions.
 
 Telegram is a **frontend adapter**. Fairness rules, Day ledger, Checklist, Grace Token (заморозка), Chat Profile / Diary, and Session orchestration live in a **channel-agnostic core**. A future second client (e.g. admin HTTP) calls the same core verbs — it does not become a second product mind.
 
-### `@sobrina/core` (channel-agnostic)
+### `@sobri/core` (channel-agnostic)
 
 - Durable verbs for Check-in, Day close, Checklist, settings, Grace Token, stats reads
 - Session hub (`getOrStart(chat)`, idle timeout, turn serialization) — [spec/session.md](../spec/session.md), [ADR 0004](../docs/adr/0004-agentic-session-vs-day.md)
 - Scheduler wake points for Reminder and Deadline — [spec/daily-rhythm.md](../spec/daily-rhythm.md)
 - Memory store (Profile + Diary markdown) — [spec/memory.md](../spec/memory.md), [ADR 0003](../docs/adr/0003-memory-markdown-and-injection.md)
-- Mastra agent placement: Sobrina person, tool choice, narration; tools call core verbs
+- Mastra agent placement: Sobri person, tool choice, narration; tools call core verbs
 - SQLite ownership and migrations
 
-### `@sobrina/telegram` (channel I/O only)
+### `@sobri/telegram` (channel I/O only)
 
 - Grammy bot: group messages, callbacks, `/settings` chrome
 - Render `askWithOptions` as inline buttons; enforce caption length limit ([spec/telegram-ux.md](../spec/telegram-ux.md))
@@ -64,13 +64,13 @@ Channel-specific tools are allowed for UX. They must invoke core verbs. Product 
 
 One process, Bun workspaces — not microservices:
 
-- `packages/core` — `@sobrina/core`
-- `packages/telegram` — `@sobrina/telegram` (depends on core)
+- `packages/core` — `@sobri/core`
+- `packages/telegram` — `@sobri/telegram` (depends on core)
 
 ```mermaid
 flowchart TB
   tg[TelegramAdapter]
-  core[SobrinaCore]
+  core[SobriCore]
   tg --> core
   core --> session[SessionHub]
   core --> verbs[DurableVerbs]
@@ -134,7 +134,7 @@ Implementation note for later boards: timer loop vs external cron is an eng choi
 
 | State | Package | Notes |
 |-------|---------|-------|
-| Connection + migrations | `@sobrina/core` | Single writer process assumed in Phase 1 |
+| Connection + migrations | `@sobri/core` | Single writer process assumed in Phase 1 |
 | Chat settings (Reminder, Deadline, TZ, N) | Core | Admin-facing via telegram `/settings` |
 | Checklist, Days, Check-ins, Grace Token state | Core | Fairness ledger |
 | Chat Profile + Diary | Core | Markdown strings ([ADR 0003](../docs/adr/0003-memory-markdown-and-injection.md)) |
@@ -148,7 +148,7 @@ DB path / data directory via env name (e.g. `DATABASE_PATH`) — values never co
 
 ## Mastra placement
 
-- Lives inside `@sobrina/core` (or a core submodule), not inside the Grammy package
+- Lives inside `@sobri/core` (or a core submodule), not inside the Grammy package
 - Agent tools wrap durable verbs and memory/stats reads
 - Adapter calls Session hub with inbound events; Session hub drives the agent turn
 - Character / prompt material sourced from [spec/character.md](../spec/character.md) (implementation packaging on agent board)
