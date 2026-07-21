@@ -49,9 +49,19 @@ Grill locked: product/person **Sobri**; closed **Character** catalog (Pan / Arte
 
 **Out of scope:** GitHub org/repo rename; Telegram BotFather display-name ops; Character schema/UI (T25/T44); prompt prose (T61)
 
+**Migration plan (T71.1 target):**
+
+- **Target names (locked):** product/person `Sobri`; workspace packages `@sobri/core`, `@sobri/telegram`; root package `sobri`
+- **No runtime dual-alias needed.** Packages are `private`, workspace-only, never published; nothing outside this repo resolves `@sobrina/*` by name. Safety comes from **batch atomicity**, not a compat alias:
+  - **T71.2** (code batch): rename both `package.json` `name` fields + the telegram→core workspace dependency + every source import/constant/log string in the same commit, then verify lint/typecheck green before committing — no partial state (old name in one file, new in another) is ever committed
+  - **T71.3** (docs batch): rename human-facing/doc strings (`AGENTS.md`, `tech/*.md`, `README.md`, `.env.example`, ADRs) — docs-only, no code risk
+  - **T71.4** (contract): grep gate confirms no stale `@sobrina/` or Sobrina-as-product string remains in owned trees; drop this plan section once contract lands (superseded by grep gate)
+  - **T71.5** (smoke): clean install + lint + typecheck proves the renamed workspace resolves and builds
+- **Exception (kept, not stale):** ticket titles/prose that narrate the migration itself — e.g. this theme's title "Rename Sobrina → Sobri", `tickets.md`'s board index entry "Sobrina→Sobri rename" — describe what T71 did; they are not live product-name usage and stay after the contract step
+
 **Tasks:**
 
-- [ ] **T71.1** Expand: document target names (`Sobri`, `@sobri/core`, `@sobri/telegram`); add dual-read or alias strategy so migrate batches stay green
+- [x] **T71.1** Expand: document target names (`Sobri`, `@sobri/core`, `@sobri/telegram`); lock migration strategy (atomic batches, no runtime alias needed) so migrate batches stay green
 - [ ] **T71.2** Migrate package names + imports + root workspace scripts (batch; lint/typecheck green)
 - [ ] **T71.3** Migrate architecture, AGENTS, ticket boards, README, env docs strings Sobrina → Sobri / `@sobrina` → `@sobri`
 - [ ] **T71.4** Contract: remove aliases/old package names; grep gate no stale `@sobrina/` or Sobrina-as-product in owned trees
