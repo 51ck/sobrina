@@ -106,7 +106,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 **Tasks:**
 
 - [x] **T4.1** `.env.example` with names only (empty values / placeholders); ensure `.env` gitignored
-- [ ] **T4.2** Core config module: read `DATABASE_PATH` (and any other foundation-required names); typed result
+- [x] **T4.2** Core config module: read `DATABASE_PATH` (and any other foundation-required names); typed result
 - [ ] **T4.3** Fail fast with actionable message when required foundation env missing
 - [ ] **T4.4** Document optional vs required names for foundation vs later boards (short comment in `.env.example` or config module)
 
