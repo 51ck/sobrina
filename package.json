@@ -4,10 +4,11 @@
   "type": "module",
   "workspaces": ["packages/*"],
   "scripts": {
-    "lint": "echo \"lint: wire in T3\" && exit 0",
+    "lint": "oxlint packages",
     "typecheck": "bun run --filter '@sobrina/*' typecheck"
   },
   "devDependencies": {
+    "oxlint": "^1.74.0",
     "typescript": "^7.0.2"
   }
 }
