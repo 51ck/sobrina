@@ -30,7 +30,7 @@ Grill locked: product/person **Sobri**; closed **Character** catalog (Pan / Arte
 **Tasks:**
 
 - [x] **T70.1** Glossary: **Sobri**, **Character**; catalog ids `pan` | `artemis` | `apollo` | `hestia` + RU code names Пан / Артемида / Аполлон / Гестия; retire Sobrina-as-person wording
-- [ ] **T70.2** Rewrite [character.md](../spec/character.md): shared peer foundation + four face cards; archetypes not kinship claims; Sobri continuous self; face = voice/gender
+- [x] **T70.2** Rewrite [character.md](../spec/character.md): shared peer foundation + four face cards; archetypes not kinship claims; Sobri continuous self; face = voice/gender
 - [ ] **T70.3** SPEC UX: Character in `/settings` (admins only); force-choose (no silent default); `setChatAdministratorCustomTitle` best-effort; no chat narration on face switch
 - [ ] **T70.4** Scrub she/Sobrina-person in vision, agent, memory, telegram-ux, roadmap, related SPEC cross-links; Diary Character mark noted as Phase 2
 - [ ] **T70.5** Optional ADR: Character per chat + admin title vs display-name limits — only if trade-off needs recording
