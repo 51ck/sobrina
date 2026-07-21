@@ -6,14 +6,15 @@ See also: [stats.md](stats.md), [checklist.md](checklist.md), ADR [0002](../docs
 
 ## Settings (`/settings` in group)
 
-Configurable by Telegram group admins and env bot admins:
+Configurable by Telegram group admins and env bot admins (same authority for all rows — see [telegram-ux.md](telegram-ux.md)):
 
 | Field | Role |
 |-------|------|
-| Reminder time | When Sobrina pings the group |
+| Reminder time | When Sobri pings the group |
 | Deadline time | When the Day closes (may be next clock morning) |
 | Timezone | Chat TZ for Day key and schedule |
 | N (заморозка) | Sober Streak length to earn Grace Token (default **3**) |
+| Character | Closed face catalog; one per chat; **force-choose** (no silent default) |
 
 No “window duration.”
 
@@ -25,7 +26,7 @@ No “window duration.”
 
 ## Reminder
 
-- Scheduler fires → Sobrina posts Reminder (agentic Session wake)
+- Scheduler fires → Sobri posts Reminder (agentic Session wake)
 - Buttons via askWithOptions; defaults **Красавчик** / **Оступился** unless special chrome is truly needed
 - Button tap: join Checklist if needed + record Check-in
 - Free text Check-in always works (and also joins if needed)
@@ -45,7 +46,7 @@ Which Day a Check-in targets:
 3. Else previous Day if still fixable (before next Reminder)
 4. Else current / upcoming calendar Day (early Check-in)
 
-If unclear → Sobrina asks one clarifying question.
+If unclear → Sobri asks one clarifying question.
 
 ## Deadline
 

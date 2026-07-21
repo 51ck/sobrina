@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Own the pure-idea product specification for Sobrina: what the service is, who she is, daily rhythm, stats rules, Checklist, Session, memory, Telegram UX, roadmap. No implementation, stack, or engineering layout lives here (see [tech/](../tech/AGENTS.md)).
+Own the pure-idea product specification for Sobri: what the service is, who Sobri is (Character faces), daily rhythm, stats rules, Checklist, Session, memory, Telegram UX, roadmap. No implementation, stack, or engineering layout lives here (see [tech/](../tech/AGENTS.md)).
 
 ## Ownership
 
 - Product vision and authenticity bar
-- Sobrina character and conceptual agent capabilities
+- Sobri Character (shared peer foundation + face catalog) and conceptual agent capabilities
 - Daily rhythm (Reminder, Deadline, Check-in, Day Summary)
 - Stats rules (statuses, Grace Token, Streak / Antistreak)
 - Checklist membership
@@ -46,12 +46,12 @@ Idea documents:
 | Doc | Owns |
 |-----|------|
 | [vision.md](vision.md) | Problem, what/why, authenticity bar |
-| [character.md](character.md) | Sobrina persona |
+| [character.md](character.md) | Sobri peer foundation + Character faces |
 | [agent.md](agent.md) | Role, authority, conceptual capabilities |
 | [daily-rhythm.md](daily-rhythm.md) | Reminder, Deadline, Check-in, Summary, Day resolution |
 | [stats.md](stats.md) | Statuses, Grace Token, streaks, full stats, late fix |
 | [checklist.md](checklist.md) | Membership, join/leave |
 | [session.md](session.md) | Agentic Session lifecycle |
 | [memory.md](memory.md) | Profile, Diary, injection, corrections |
-| [telegram-ux.md](telegram-ux.md) | Group UX, `/settings`, askWithOptions |
+| [telegram-ux.md](telegram-ux.md) | Group UX, `/settings`, Character, askWithOptions |
 | [roadmap.md](roadmap.md) | Product phases |

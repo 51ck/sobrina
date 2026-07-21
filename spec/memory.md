@@ -25,13 +25,17 @@ Open (tech): whether digest is stored or derived on read; exact char/token caps.
 
 ## Corrections
 
-User corrects behavior/names → Sobrina may:
+User corrects behavior/names → Sobri may:
 
 - Update Profile
 - Append / refactor Diary
 - Discard (joke, one-off, conflicts with fairness rules)
 
-Fluency: no dossier dump; no «я сохранила».
+Fluency: no dossier dump; no persistence narration («я сохранил(а)»).
+
+## Character and Diary (Phase 2)
+
+When Diary exists, Character set/change should leave a Diary mark for continuity ([character.md](character.md)). **Phase 2** — not before Diary ships (agent T62).
 
 ## Privacy
 
