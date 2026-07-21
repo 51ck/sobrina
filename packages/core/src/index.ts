@@ -6,3 +6,5 @@ export {
   MissingFoundationEnvError,
   type FoundationConfig,
 } from "./config.ts";
+
+export { SQLITE_ACCESS } from "./store.ts";
