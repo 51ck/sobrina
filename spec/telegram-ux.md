@@ -2,7 +2,7 @@
 
 Group-first surface. Implementation detail stays in `tech/`; this doc locks product feel.
 
-Glossary: [`../CONTEXT.md`](../CONTEXT.md). Character: [character.md](character.md).
+Glossary: [`../CONTEXT.md`](../CONTEXT.md). Character: [character.md](character.md). ADR: [0006](../docs/adr/0006-character-per-chat-and-admin-title.md).
 
 ## Install
 

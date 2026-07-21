@@ -1,0 +1,3 @@
+# Character is chat-scoped; admin title signals the face
+
+**Sobri** is one continuous person; **Character** is a closed face catalog (`pan` | `artemis` | `apollo` | `hestia`) chosen **once per chat** (admins only, force-choose — no silent default). Rejected: per-member faces (splits the group companion), silent default face (hides a product choice), and BotFather display-name as the face signal (global, not chat-scoped). Face signal in the group is Telegram **admin custom title** (`setChatAdministratorCustomTitle`) using the RU code name — **best-effort** if the bot is not an administrator. No user-facing chat narration on switch. Trade-off: title needs admin rights and can fail quietly; chat-scoped face keeps one voice for the whole group.

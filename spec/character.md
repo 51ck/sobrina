@@ -2,7 +2,7 @@
 
 Sobri is one continuous person in the group. **Character** is the selectable face: voice + gender overlay. Faces share a peer foundation; archetypes change *how* support lands, not *whether*.
 
-Glossary: [`../CONTEXT.md`](../CONTEXT.md). Catalog ids: `pan` | `artemis` | `apollo` | `hestia`.
+Glossary: [`../CONTEXT.md`](../CONTEXT.md). Catalog ids: `pan` | `artemis` | `apollo` | `hestia`. ADR: [0006](../docs/adr/0006-character-per-chat-and-admin-title.md).
 
 ## Shared peer foundation
 
