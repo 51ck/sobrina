@@ -27,9 +27,10 @@ Phase 1 boards (planned order):
 | Board | Focus | Status |
 |-------|-------|--------|
 | [`foundation-tasks.md`](foundation-tasks.md) | Monorepo, env, lint/typecheck, DB, boot (T1–T6) | Active |
-| [`core-tasks.md`](core-tasks.md) | Durable verbs, Session hub, scheduler, Mastra tool bindings (T10–T24) | Active |
-| [`telegram-tasks.md`](telegram-tasks.md) | Grammy group adapter, `/settings`, askWithOptions chrome (T30–T43) | Active |
-| [`agent-tasks.md`](agent-tasks.md) | Mastra agent, prompts, Session turns, Summary/stats voice (T50+) | Active |
+| [`core-tasks.md`](core-tasks.md) | Durable verbs, Session hub, scheduler, Mastra tool bindings, Character setting (T10–T25) | Active |
+| [`telegram-tasks.md`](telegram-tasks.md) | Grammy group adapter, `/settings`, Character title, askWithOptions chrome (T30–T44) | Active |
+| [`agent-tasks.md`](agent-tasks.md) | Mastra agent, prompts, face pack, Session turns, Summary/stats voice (T50–T62) | Active |
+| [`character-tasks.md`](character-tasks.md) | Character SPEC lock + Sobrina→Sobri rename (T70–T71) | Active |
 
 ## Ticket ID scheme
 
@@ -37,7 +38,7 @@ Phase 1 boards (planned order):
 - **Slice:** `T<n>.<m>` — PR-sized checkbox (e.g. `T1.3`)
 - IDs are stable once published — do not renumber; mark cancelled instead
 - Agents invent new IDs only by **writing them on the board** first
-- **Phase 1 preference:** theme numbers are **unique across boards** so commits/issues can cite `T12.3` without a board prefix — foundation `T1`–`T6`, core `T10`–`T24`, telegram `T30`–`T43`, agent `T50`+, later boards continue upward (skip used ranges)
+- **Phase 1 preference:** theme numbers are **unique across boards** so commits/issues can cite `T12.3` without a board prefix — foundation `T1`–`T6`, core `T10`–`T25`, telegram `T30`–`T44`, agent `T50`–`T62`, character `T70`–`T71`, later boards continue upward (skip used ranges)
 - If a collision ever exists, cite `board-file` + ID; do not renumber published IDs
 
 ## Slice shape (required)
@@ -113,4 +114,5 @@ One implementer owns one slice at a time. Reviewer does not expand scope into th
 
 - Architecture: [architecture.md](architecture.md)
 - First board: [foundation-tasks.md](foundation-tasks.md)
+- Character / Sobri: [character-tasks.md](character-tasks.md)
 - DOX owner: [AGENTS.md](AGENTS.md)

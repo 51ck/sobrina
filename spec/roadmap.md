@@ -1,11 +1,12 @@
 # Roadmap
 
-Product phases — not build tickets. Phase 1 boards all live under `tech/` (foundation, core, telegram, agent — see [`tech/tickets.md`](../tech/tickets.md)).
+Product phases — not build tickets. Phase 1 boards live under `tech/` (foundation, core, telegram, agent, character — see [`tech/tickets.md`](../tech/tickets.md)).
 
 ## Phase 0 — Spec lock (current)
 
 - DOX + `CONTEXT.md` + `spec/` + ADRs
 - Shared understanding from domain grill
+- Character faces + Sobri rename: [character-tasks.md](../tech/character-tasks.md) **T70** (then **T71**)
 
 ## Phase 1 — Core + Telegram MVP
 
@@ -13,12 +14,13 @@ Product phases — not build tickets. Phase 1 boards all live under `tech/` (fou
 - Reminder + Deadline + Check-in verbs + Checklist
 - Grace Token + Streak reads
 - Day Summary
-- `/settings`
+- `/settings` + Character force-choose + admin title
 - Clean-slate install
 
 ## Phase 2 — Memory + conversation depth
 
 - Profile + Diary MD, hybrid injection, recall, Session refactor
+- Diary Character mark on face set/change ([agent-tasks.md](../tech/agent-tasks.md) **T62**)
 - Manners corrections; richer Q&A / full stats
 
 ## Phase 3 — Polish

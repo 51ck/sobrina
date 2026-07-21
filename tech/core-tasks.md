@@ -2,7 +2,7 @@
 
 Board under the [in-repo ticket system](tickets.md). Phase 1 ledger + Session + scheduler in `@sobrina/core`. Spec: [roadmap.md](../spec/roadmap.md) Phase 1. Arch: [architecture.md](architecture.md). Glossary: [`CONTEXT.md`](../CONTEXT.md).
 
-IDs start at **T10** (foundation owns T1–T6; cross-board uniqueness per [tickets.md](tickets.md)).
+IDs **T10–T25** (foundation T1–T6; cross-board uniqueness per [tickets.md](tickets.md)).
 
 ## Why
 
@@ -25,6 +25,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 13. **askWithOptions (core)** — channel-agnostic closed choice + caption max
 14. **Day Summary fact bundle** — ledger facts for narration (no Telegram post)
 15. **Mastra tool bindings** — tools wrap durable verbs (no character prompt)
+16. **Chat Character setting** — durable `unset | pan|artemis|apollo|hestia` (after Character SPEC T70)
 
 ---
 
@@ -352,6 +353,28 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 ---
 
+## T25 — Chat Character durable setting
+
+**Problem:** Each chat needs one persistent Character face (`unset` until admin chooses) before telegram/agent can force-choose or load voice.
+
+**Done when:** Chat settings (or sibling column) store Character as `unset` | `pan` | `artemis` | `apollo` | `hestia`; get/set verbs with validation; default on create = `unset`; unit tests cover set/get/reject unknown id. No Telegram title sync here.
+
+**Depends on:** T11; character board **T70** (catalog locked in SPEC/glossary)
+
+**Spec / arch links:** [character-tasks.md](character-tasks.md) (T70), [spec/character.md](../spec/character.md), [`CONTEXT.md`](../CONTEXT.md) (Character), [architecture.md](architecture.md) (chat settings)
+
+**Out of scope:** `/settings` UI; `setChatAdministratorCustomTitle`; prompt cards (T61); Diary mark (T62); package rename (T71)
+
+**Tasks:**
+
+- [ ] **T25.1** Migration: Character field on chat settings (`unset` + four catalog ids)
+- [ ] **T25.2** `getCharacter` / `setCharacter` (or settings update path) with catalog validation
+- [ ] **T25.3** New chat defaults to `unset`
+- [ ] **T25.4** Tests: set each id; reject unknown; read round-trip
+- [ ] **T25.5** Expose Character on settings get used by T24 tools / telegram (no title side effects)
+
+---
+
 ## Suggested build order
 
 ```text
@@ -372,6 +395,7 @@ foundation T5–T6 (done gate)
   → T22 askWithOptions       ∥ anytime after foundation
   → T23 Day Summary facts
   → T24 Mastra tool bindings
+  → T25 Character setting    (needs T70 + T11)
 ```
 
 Suggested first three core slices once foundation boot works:
@@ -383,8 +407,10 @@ Suggested first three core slices once foundation boot works:
 ## Non-goals
 
 - Grammy / Telegram I/O, `/settings` UI, inline keyboards (telegram board)
-- Character prompt, Summary prose tone, manners copy (agent board)
+- Character prompt, Summary prose tone, manners copy (agent board T61)
+- Telegram Character picker / admin title (telegram T44)
 - Profile / Diary tables, digest injection, recall/refactor implementation (Phase 2)
+- Spec Character lock / package rename (character board T70–T71)
 - Check-in **window** / live poll as source of truth
 - sushkobot V1 DB import
 - Per-person Reminder times
@@ -396,6 +422,7 @@ Suggested first three core slices once foundation boot works:
 - Process: [tickets.md](tickets.md)
 - Architecture: [architecture.md](architecture.md)
 - Foundation: [foundation-tasks.md](foundation-tasks.md)
-- Spec: [daily-rhythm.md](../spec/daily-rhythm.md), [stats.md](../spec/stats.md), [checklist.md](../spec/checklist.md), [session.md](../spec/session.md), [agent.md](../spec/agent.md)
+- Character: [character-tasks.md](character-tasks.md) (T70, T25 depends)
+- Spec: [daily-rhythm.md](../spec/daily-rhythm.md), [stats.md](../spec/stats.md), [checklist.md](../spec/checklist.md), [session.md](../spec/session.md), [agent.md](../spec/agent.md), [character.md](../spec/character.md)
 - ADRs: [0001](../docs/adr/0001-grace-token.md), [0002](../docs/adr/0002-overnight-deadline-day-key.md), [0004](../docs/adr/0004-agentic-session-vs-day.md), [0005](../docs/adr/0005-late-fix-until-next-reminder.md)
 - DOX: [AGENTS.md](AGENTS.md)

@@ -2,7 +2,7 @@
 
 Board under the [in-repo ticket system](tickets.md). Phase 1 Sobrina person: Mastra agent, prompts, Session turns, tool-backed narration. Spec: [agent.md](../spec/agent.md), [character.md](../spec/character.md), [stats.md](../spec/stats.md), [session.md](../spec/session.md), [memory.md](../spec/memory.md) (Phase 2 depth). Arch: [architecture.md](architecture.md) (Mastra in `@sobrina/core`; durable verbs vs agent). Glossary: [`CONTEXT.md`](../CONTEXT.md).
 
-IDs start at **T50** (foundation T1–T6, core T10–T24, telegram T30–T43; cross-board uniqueness per [tickets.md](tickets.md)).
+IDs **T50–T62** (foundation T1–T6, core T10–T25, telegram T30–T44; cross-board uniqueness per [tickets.md](tickets.md)).
 
 ## Why
 
@@ -11,7 +11,7 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 ## Themes
 
 1. **Mastra agent bootstrap** — MODEL_ID / provider wiring in `@sobrina/core`
-2. **Character + authority prompts** — from character.md / agent.md
+2. **Character + authority prompts** — baseline from character.md / agent.md (**T51**); face catalog pack (**T61**)
 3. **Session turn loop** — tools from T24; mutex via T20
 4. **Conflict rule** — ledger/tool results win
 5. **Day resolution in dialogue** — T19 helper; ask if unclear
@@ -21,6 +21,8 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 9. **Progress / full stats narration** — T18 bundle only
 10. **Phase 1 memory stub** — no Profile/Diary tables; empty/no-op injection
 11. **Integration smoke** — Session + tools + outbound handoff
+12. **Face prompt pack** — active Character + other faces as same-instance blurbs (**T61**)
+13. **Diary Character mark** — Phase 2; silent append on set/change (**T62**)
 
 ---
 
@@ -48,23 +50,24 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 
 ## T51 — Character and authority prompts
 
-**Problem:** Sobrina must sound like the locked character and respect authority boundaries.
+**Problem:** Sobri must sound like the locked peer and respect authority boundaries (baseline before face catalog T61).
 
-**Done when:** System/instructions prompt encodes [character.md](../spec/character.md) voice + boundaries and [agent.md](../spec/agent.md) may/may-not; Russian default in group; no therapy/scold framing; no «я сохранила» persistence narration; prompt reviewable as a file under core.
+**Done when:** System/instructions prompt encodes [character.md](../spec/character.md) shared peer foundation + boundaries and [agent.md](../spec/agent.md) may/may-not; Russian default in group; no therapy/scold framing; no persistence narration («я сохранила» / equivalent); prompt reviewable as a file under core. **Face-specific catalog cards land in T61** after Character SPEC (T70).
 
-**Depends on:** T50
+**Depends on:** T50; prefer **T70** if Character SPEC already landed (else stub peer foundation and extend in T61)
 
-**Spec / arch links:** [spec/character.md](../spec/character.md), [spec/agent.md](../spec/agent.md), [CONTEXT.md](../CONTEXT.md)
+**Spec / arch links:** [spec/character.md](../spec/character.md), [spec/agent.md](../spec/agent.md), [CONTEXT.md](../CONTEXT.md), [character-tasks.md](character-tasks.md) (T70)
 
-**Out of scope:** Profile nickname injection (Phase 2); long multi-file prompt frameworks
+**Out of scope:** Per-face Pan/Artemis/Apollo/Hestia cards (T61); Profile nickname injection (Phase 2); Diary Character mark (T62); long multi-file prompt frameworks
 
 **Tasks:**
 
-- [ ] **T51.1** Prompt source file(s) in `@sobrina/core` derived from character.md (not a product rewrite)
+- [ ] **T51.1** Prompt source file(s) in core derived from character.md peer foundation + authority (not a product rewrite)
 - [ ] **T51.2** Encode authority: may use durable tools; may not invent Check-ins / streaks / заморозка
-- [ ] **T51.3** Encode voice: short, human, dry humor; celebrate sober progress; support slips without Antistreak spotlight
-- [ ] **T51.4** Encode boundaries: not therapy/crisis; no dossier dump; no shame in Summary
+- [ ] **T51.3** Encode shared voice boundaries: peer not therapist; celebrate sober progress; support slips without Antistreak spotlight
+- [ ] **T51.4** Encode boundaries: not therapy/crisis; no dossier dump; no shame in Summary; no kinship self-claim
 - [ ] **T51.5** Smoke: instructions load into agent factory from T50
+- [ ] **T51.6** Note: T61 replaces single-voice assumption with active Character injection
 
 ---
 
@@ -258,12 +261,56 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 
 ---
 
+## T61 — Face prompt pack (Character catalog)
+
+**Problem:** Chat Character face must drive voice/gender; other faces are alternate faces of the same Sobri instance, not other people.
+
+**Done when:** Prompt pack loads **active** Character full card (Pan / Artemis / Apollo / Hestia) from SPEC; injects short blurbs for the other three as same-instance faces (for admin switch awareness only); agent must not “notice” or roleplay other faces in chat; Sobri continuous self (no kinship self-claim; no “я Пан” costume spam); **no user-facing narration when Character changes**; gender/grammar follows active face; smoke with mocked Character id.
+
+**Depends on:** T50, T51; character board **T70**; core **T25** for reading active Character (or test fixture)
+
+**Spec / arch links:** [spec/character.md](../spec/character.md), [character-tasks.md](character-tasks.md) (T70), [CONTEXT.md](../CONTEXT.md) (Character, Sobri)
+
+**Out of scope:** Telegram title sync (T44); Diary append (T62); package rename (T71); inventing fifth faces
+
+**Tasks:**
+
+- [ ] **T61.1** Prompt files: four face cards + shared foundation (from T70 character.md)
+- [ ] **T61.2** Turn injection: active face full; other faces short same-instance blurbs
+- [ ] **T61.3** Encode: no kinship claim; no noticing other faces in speech; no switch announcement
+- [ ] **T61.4** Wire agent factory to chat Character from T25 (unset → do not run personality path; telegram T44 gates)
+- [ ] **T61.5** Smoke: apollo vs pan fixtures → different voice cues in instructions; lint/typecheck clean
+
+---
+
+## T62 — Diary mark Character (Phase 2)
+
+**Problem:** Character set/change should leave a durable Diary note for continuity without telling the chat the face switched.
+
+**Done when:** On Character set or change, Diary appends a brief Character mark (id/code name); agent does **not** narrate the switch to users; works with real Profile/Diary injection. **Blocked until Diary implementation exists.**
+
+**Depends on:** T61; Phase 2 Diary/Profile persistence (beyond T59 stub)
+
+**Spec / arch links:** [spec/memory.md](../spec/memory.md), [spec/character.md](../spec/character.md), [ADR 0003](../docs/adr/0003-memory-markdown-and-injection.md), [character-tasks.md](character-tasks.md)
+
+**Out of scope:** Phase 1 shipping; user-facing switch lines; wiping Diary on face change
+
+**Tasks:**
+
+- [ ] **T62.1** (Phase 2) On `setCharacter`, append Diary Character mark
+- [ ] **T62.2** (Phase 2) Digest/injection includes current Character without switch drama
+- [ ] **T62.3** (Phase 2) Tests: set/change → Diary note; no outbound “switched face” requirement
+
+---
+
 ## Suggested build order
 
 ```text
 core T20, T24, T19, T14, T17, T18, T22, T23 (gates)
+  → character T70 (SPEC) then T71 rename as needed
   → T50 Mastra bootstrap
-  → T51 character prompts
+  → T51 character prompts (peer foundation)
+  → T61 face prompt pack     (needs T70 + T25)
   → T52 Session turn + tools
   → T53 conflict rule
   → T54 Day resolution dialogue
@@ -273,6 +320,7 @@ core T20, T24, T19, T14, T17, T18, T22, T23 (gates)
   → T58 progress / full stats
   → T59 Phase 1 memory stub
   → T60 integration smoke
+  → T62 Diary Character mark (Phase 2; after Diary)
 ```
 
 Suggested first three slices:
@@ -285,17 +333,21 @@ Suggested first three slices:
 
 - Grammy / Telegram I/O inside agent modules
 - Reimplementing Grace Token, Streak walk, or Deadline auto-slip in the LLM
-- Profile / Diary persistence, injection budgets, recall/refactor quality (Phase 2)
+- Profile / Diary persistence, injection budgets, recall/refactor quality (Phase 2) — except T62 when Diary exists
+- Character SPEC / package rename (character board T70–T71)
+- Telegram Character picker / admin title (telegram T44)
 - Leading with Antistreak in Reminder, Summary, or unsolicited greetings
 - Inventing Check-in statuses or streak numbers without tools
 - Therapy / crisis / diagnosis framing
+- Kinship self-claim or user-facing face-switch narration
 - sushkobot import; DM-primary UX; web UI
 
 ## Related
 
 - Process: [tickets.md](tickets.md)
 - Architecture: [architecture.md](architecture.md)
-- Core: [core-tasks.md](core-tasks.md) (esp. T19, T22–T24)
-- Telegram: [telegram-tasks.md](telegram-tasks.md) (T32, T35, T37, T40 deliver I/O)
+- Core: [core-tasks.md](core-tasks.md) (esp. T19, T22–T25)
+- Telegram: [telegram-tasks.md](telegram-tasks.md) (T32, T35, T37, T40, T44)
+- Character: [character-tasks.md](character-tasks.md) (T70–T71)
 - Spec: [agent.md](../spec/agent.md), [character.md](../spec/character.md), [stats.md](../spec/stats.md), [session.md](../spec/session.md), [memory.md](../spec/memory.md)
 - DOX: [AGENTS.md](AGENTS.md)

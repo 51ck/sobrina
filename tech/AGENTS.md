@@ -17,7 +17,7 @@ Does not own product vision (`spec/`) or glossary (`CONTEXT.md`).
 
 - Must not weaken `spec/` product contracts
 - Adapters own I/O only; channel tools call core verbs
-- Product name / agent person: **Sobrina**
+- Product name / agent person: **Sobrina** (Sobri + Character faces: see [character-tasks.md](character-tasks.md) T70–T71)
 - No secrets in repo
 - `askWithOptions` must enforce **caption length limit** (exact max when implemented)
 - Build tickets live under `tech/` — not in `spec/`
@@ -41,6 +41,7 @@ Does not own product vision (`spec/`) or glossary (`CONTEXT.md`).
 | [architecture.md](architecture.md) | System shape: core vs telegram, Session hub, durable verbs vs agent, scheduler, SQLite, Mastra |
 | [tickets.md](tickets.md) | In-repo ticket process (boards, IDs, agent loop, implementer/reviewer) |
 | [foundation-tasks.md](foundation-tasks.md) | Foundation board: monorepo, env, lint/typecheck, DB, boot (T1–T6) |
-| [core-tasks.md](core-tasks.md) | Core board: ledger, Grace Token, Session hub, scheduler, durable verbs (T10–T24) |
-| [telegram-tasks.md](telegram-tasks.md) | Telegram board: Grammy group adapter, `/settings`, Reminder buttons, Summary delivery (T30–T43) |
-| [agent-tasks.md](agent-tasks.md) | Agent board: Mastra agent, character prompts, Session turns, Summary/stats voice (T50–T60) |
+| [core-tasks.md](core-tasks.md) | Core board: ledger, Grace Token, Session hub, scheduler, durable verbs (T10–T25) |
+| [telegram-tasks.md](telegram-tasks.md) | Telegram board: Grammy group adapter, `/settings`, Character title, Reminder buttons, Summary delivery (T30–T44) |
+| [agent-tasks.md](agent-tasks.md) | Agent board: Mastra agent, character prompts, face pack, Session turns, Summary/stats voice (T50–T62) |
+| [character-tasks.md](character-tasks.md) | Character / Sobri board: SPEC lock + package rename (T70–T71) |

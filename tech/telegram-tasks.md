@@ -2,7 +2,7 @@
 
 Board under the [in-repo ticket system](tickets.md). Phase 1 group adapter in `@sobrina/telegram`. Spec: [telegram-ux.md](../spec/telegram-ux.md), [daily-rhythm.md](../spec/daily-rhythm.md), [checklist.md](../spec/checklist.md). Arch: [architecture.md](architecture.md) (adapter I/O only; channel tools call core verbs). Glossary: [`CONTEXT.md`](../CONTEXT.md).
 
-IDs start at **T30** (foundation T1–T6, core T10–T24; cross-board uniqueness per [tickets.md](tickets.md)).
+IDs **T30–T44** (foundation T1–T6, core T10–T25; cross-board uniqueness per [tickets.md](tickets.md)).
 
 ## Why
 
@@ -19,10 +19,11 @@ Core owns the ledger, Session hub, scheduler due-checks, and `askWithOptions` ty
 7. **Button Check-in** — callback → join + record via core
 8. **Free-text Check-in handoff** — speech path to Session/core; wins over buttons
 9. **`/settings`** — Reminder, Deadline, TZ, N; admins only
-10. **Checklist commands** — join/leave handoff to core
-11. **Day Summary delivery** — post after Deadline using core facts (+ agent prose when ready)
-12. **Scheduler loop in process** — call core tick → consume intents → T35 / T40 I/O only
-13. **Hygiene** — edit-in-place Reminder chrome; no proactive user-message deletes
+10. **Character pick + admin title** — force-choose face; `setChatAdministratorCustomTitle` best-effort
+11. **Checklist commands** — join/leave handoff to core
+12. **Day Summary delivery** — post after Deadline using core facts (+ agent prose when ready)
+13. **Scheduler loop in process** — call core tick → consume intents → T35 / T40 I/O only
+14. **Hygiene** — edit-in-place Reminder chrome; no proactive user-message deletes
 
 ---
 
@@ -205,7 +206,7 @@ Core owns the ledger, Session hub, scheduler due-checks, and `askWithOptions` ty
 
 **Spec / arch links:** [spec/telegram-ux.md](../spec/telegram-ux.md) (`/settings`), [spec/daily-rhythm.md](../spec/daily-rhythm.md) (settings fields), [architecture.md](architecture.md) (env bot admins)
 
-**Out of scope:** Per-person Reminder times; Checklist membership UI inside settings
+**Out of scope:** Per-person Reminder times; Checklist membership UI inside settings; Character picker (T44)
 
 **Tasks:**
 
@@ -321,6 +322,29 @@ Core owns the ledger, Session hub, scheduler due-checks, and `askWithOptions` ty
 
 ---
 
+## T44 — Character `/settings` + force-choose + admin title
+
+**Problem:** Chat must pick one Character face before personality runs; Telegram should show the face code name as Sobri’s admin custom title when possible.
+
+**Done when:** Admins (same gate as T38) set Character via `/settings` or askWithOptions picker to `pan|artemis|apollo|hestia`; until not `unset`, bot only does setup/choose (no Check-in personality); on set/change calls `setChatAdministratorCustomTitle` with code name in chat language (Пан / Артемида / Аполлон / Гестия or EN equivalents); soft-fail + one Russian warn if not admin / API fail; Character still saved via core T25; retry title sync when admin rights appear. No user-facing “face switched” narration from adapter.
+
+**Depends on:** T38, core **T25**; character board **T70**
+
+**Spec / arch links:** [spec/telegram-ux.md](../spec/telegram-ux.md), [spec/character.md](../spec/character.md), [character-tasks.md](character-tasks.md) (T70), [CONTEXT.md](../CONTEXT.md) (Character)
+
+**Out of scope:** Prompt cards (T61); Diary mark (T62); package rename (T71); changing BotFather display name
+
+**Tasks:**
+
+- [ ] **T44.1** Admin Character picker in `/settings` (or linked askWithOptions) → core `setCharacter`
+- [ ] **T44.2** Force-choose gate: if Character `unset`, setup/choose path only — no Check-in personality Session voice
+- [ ] **T44.3** On set/change: `setChatAdministratorCustomTitle` to code name for chat language
+- [ ] **T44.4** Soft-fail: warn once if not admin / API error; Character persist still succeeds
+- [ ] **T44.5** Retry title sync when Sobri gains admin rights (or documented re-trigger)
+- [ ] **T44.6** Tests/smoke: admin can set; non-admin rejected; unset blocks personality path; title failure does not roll back Character
+
+---
+
 ## Suggested build order
 
 ```text
@@ -331,6 +355,7 @@ core T11, T20, T21, T22, T14, T16, T17, T23 (as needed per theme)
   → T32 Session inbound
   → T34 askWithOptions chrome  (needs T22)
   → T38 /settings              (needs T11)
+  → T44 Character + title      (needs T25 + T38)
   → T39 join/leave
   → T35 Reminder delivery
   → T36 button Check-in
@@ -354,6 +379,7 @@ Suggested first three slices:
 - Ledger fairness or Grace Token rules inside the adapter
 - Profile / Diary implementation (Phase 2)
 - Character prompt / Summary literary tone (agent board)
+- Character SPEC lock / package rename (character board T70–T71)
 - sushkobot DB import
 - Buttons-only Check-in
 - Proactive deletion of user messages
@@ -363,7 +389,8 @@ Suggested first three slices:
 
 - Process: [tickets.md](tickets.md)
 - Architecture: [architecture.md](architecture.md)
-- Core board: [core-tasks.md](core-tasks.md)
+- Core board: [core-tasks.md](core-tasks.md) (esp. T25 Character)
+- Character: [character-tasks.md](character-tasks.md) (T70)
 - Foundation: [foundation-tasks.md](foundation-tasks.md)
-- Spec: [telegram-ux.md](../spec/telegram-ux.md), [daily-rhythm.md](../spec/daily-rhythm.md), [checklist.md](../spec/checklist.md)
+- Spec: [telegram-ux.md](../spec/telegram-ux.md), [daily-rhythm.md](../spec/daily-rhythm.md), [checklist.md](../spec/checklist.md), [character.md](../spec/character.md)
 - DOX: [AGENTS.md](AGENTS.md)
