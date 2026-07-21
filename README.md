@@ -6,6 +6,8 @@ Telegram group sobriety companion — agentic core, conversational Check-ins, Re
 
 **Local gate:** `bun run lint` (oxlint on `packages`) and `bun run typecheck` (`tsc --noEmit` across workspace packages).
 
+**Boot (foundation):** copy `.env.example` → `.env`, set `DATABASE_PATH` to a local SQLite path, then `bun run boot` (config → open DB → migrate → exit 0).
+
 ## Docs
 
 | Path | Role |
