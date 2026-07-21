@@ -62,7 +62,7 @@ Grill locked: product/person **Sobri**; closed **Character** catalog (Pan / Arte
 **Tasks:**
 
 - [x] **T71.1** Expand: document target names (`Sobri`, `@sobri/core`, `@sobri/telegram`); lock migration strategy (atomic batches, no runtime alias needed) so migrate batches stay green
-- [ ] **T71.2** Migrate package names + imports + root workspace scripts (batch; lint/typecheck green)
+- [x] **T71.2** Migrate package names + imports + root workspace scripts (batch; lint/typecheck green)
 - [ ] **T71.3** Migrate architecture, AGENTS, ticket boards, README, env docs strings Sobrina → Sobri / `@sobrina` → `@sobri`
 - [ ] **T71.4** Contract: remove aliases/old package names; grep gate no stale `@sobrina/` or Sobrina-as-product in owned trees
 - [ ] **T71.5** Smoke: clean install + lint + typecheck on renamed workspace

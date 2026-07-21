@@ -14,7 +14,7 @@ export async function boot(
   try {
     migrate(store);
     console.log(
-      `sobrina boot ok database=${config.databasePath} migrations=applied`,
+      `sobri boot ok database=${config.databasePath} migrations=applied`,
     );
   } finally {
     store.close();

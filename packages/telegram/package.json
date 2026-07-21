@@ -1,5 +1,5 @@
 {
-  "name": "@sobrina/telegram",
+  "name": "@sobri/telegram",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,6 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sobrina/core": "workspace:*"
+    "@sobri/core": "workspace:*"
   }
 }

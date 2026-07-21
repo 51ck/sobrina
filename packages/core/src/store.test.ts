@@ -16,7 +16,7 @@ describe("openStore + migrate", () => {
   });
 
   test("temp path → openStore → migrate → versions present → close", async () => {
-    dir = mkdtempSync(join(tmpdir(), "sobrina-store-"));
+    dir = mkdtempSync(join(tmpdir(), "sobri-store-"));
     const path = join(dir, "nested", "test.db");
     store = await openStore(path);
     migrate(store);

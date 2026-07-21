@@ -1,5 +1,5 @@
 {
-  "name": "@sobrina/core",
+  "name": "@sobri/core",
   "version": "0.0.0",
   "exports": {
     ".": "./src/index.ts"

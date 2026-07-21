@@ -1,5 +1,5 @@
-/** @sobrina/core — channel-agnostic domain (scaffold stub). */
-export const CORE_PACKAGE = "@sobrina/core" as const;
+/** @sobri/core — channel-agnostic domain (scaffold stub). */
+export const CORE_PACKAGE = "@sobri/core" as const;
 
 export {
   loadFoundationConfig,

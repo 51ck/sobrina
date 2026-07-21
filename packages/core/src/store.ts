@@ -2,7 +2,7 @@
  * SQLite store shell (T5) — open/close in T5.2; migrations in T5.3+.
  *
  * Access choice (T5.1): Bun built-in `bun:sqlite` (`Database`).
- * - Zero npm SQLite driver; stays on `@sobrina/core` only
+ * - Zero npm SQLite driver; stays on `@sobri/core` only
  * - Rejected for now: `better-sqlite3` (Node native), remote libsql clients
  */
 import { Database } from "bun:sqlite";
