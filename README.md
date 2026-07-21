@@ -4,7 +4,7 @@ Telegram group sobriety companion — agentic core, conversational Check-ins, Re
 
 **Status:** Bun workspace monorepo scaffold (`@sobrina/core`, `@sobrina/telegram`). Architecture and tickets: [`tech/`](tech/).
 
-**Typecheck:** `bun run typecheck` (`tsc --noEmit` across workspace packages).
+**Local gate:** `bun run lint` (oxlint on `packages`) and `bun run typecheck` (`tsc --noEmit` across workspace packages).
 
 ## Docs
 
