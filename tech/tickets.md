@@ -93,6 +93,38 @@ Do not start a second open slice in the same turn unless the user explicitly bat
 
 One implementer owns one slice at a time. Reviewer does not expand scope into the next slice.
 
+## Theme chunk pipeline (multi-agent)
+
+Batch workflow for building a whole theme with subagents. Extends the operating loop above; per-slice rules still bind.
+
+**Chunk = one theme.** Branch `feat/<board>-T<n>` off up-to-date `master`. One PR per chunk. Human merges to master — the pipeline never merges itself.
+
+**Per ticket (each open slice, in order):**
+
+1. **Fresh implementer subagent per ticket** — clean context; coordinator passes a tight brief (slice ID, branch, previous commit = review fixed point). No shared implementer across the chunk.
+2. Implementer: read board + spec/ADR/DOX for the slice → `/implement` (TDD at agreed seams where possible) → scoped verify: `bun run lint`, `bun run typecheck`, tests of touched packages.
+3. **`/code-review` gate per ticket** — Standards + Spec subagents on the *uncommitted work vs HEAD* (scoped to this slice only, not the whole branch).
+4. Findings go back to the **implementer** to fix; reviewer never edits. Max **2 revise rounds** per gate, then stop and escalate to a human.
+5. On approve: implementer marks `[x]`, stages only slice files, **one commit** refs the ID. Every commit on the branch is post-review green.
+
+**Per chunk (after last ticket):**
+
+6. Full verify once: `bun test` + `bun run lint` + `bun run typecheck`.
+7. **`/review-bugbot` once on branch changes** — not per ticket (Bugbot reviews merge-base → HEAD; per-ticket runs re-review earlier slices and repeat findings). Validate findings before acting; fix valid ones via implementer; commit fixes.
+8. Push, open PR (theme summary + Done-when as test plan). Human reviews and merges.
+
+**Model defaults (current, adjust freely — not a stable contract):**
+
+| Role | Default |
+|------|---------|
+| Implementer — core logic | Claude Sonnet (thinking) |
+| Implementer — docs / rename / light slices | Grok fast or Composer fast |
+| Code-review Standards/Spec subagents | Grok fast (cross-vendor vs implementer — uncorrelated blind spots) |
+| Bugbot | fixed subagent, no model choice |
+| Coordinator (loop driver) | current session model |
+
+Principles: reviewer from a different model family than implementer; don't pay top-tier thinking for report-only review work; speed matters most at the per-ticket gate (runs N times), quality matters most in the implementer (a revise round costs more than slow generation).
+
 ## Human / agent rules
 
 - Spec open questions stay in `spec/` until locked; then a board slice implements the lock

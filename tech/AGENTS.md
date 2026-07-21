@@ -39,7 +39,7 @@ Does not own product vision (`spec/`) or glossary (`CONTEXT.md`).
 | Path | Owns |
 |------|------|
 | [architecture.md](architecture.md) | System shape: core vs telegram, Session hub, durable verbs vs agent, scheduler, SQLite, Mastra |
-| [tickets.md](tickets.md) | In-repo ticket process (boards, IDs, agent loop, implementer/reviewer) |
+| [tickets.md](tickets.md) | In-repo ticket process (boards, IDs, agent loop, implementer/reviewer, theme chunk pipeline) |
 | [foundation-tasks.md](foundation-tasks.md) | Foundation board: monorepo, env, lint/typecheck, DB, boot (T1–T6) |
 | [core-tasks.md](core-tasks.md) | Core board: ledger, Grace Token, Session hub, scheduler, durable verbs (T10–T25) |
 | [telegram-tasks.md](telegram-tasks.md) | Telegram board: Grammy group adapter, `/settings`, Character title, Reminder buttons, Summary delivery (T30–T44) |
