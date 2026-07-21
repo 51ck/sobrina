@@ -57,7 +57,7 @@ Grill locked: product/person **Sobri**; closed **Character** catalog (Pan / Arte
 - [x] **T71.2** Migrate package names + imports + root workspace scripts (batch; lint/typecheck green)
 - [x] **T71.3** Migrate architecture, AGENTS, ticket boards, README, env docs strings Sobrina → Sobri / `@sobrina` → `@sobri`
 - [x] **T71.4** Contract: remove aliases/old package names; grep gate no stale `@sobrina/` or Sobrina-as-product in owned trees
-- [ ] **T71.5** Smoke: clean install + lint + typecheck on renamed workspace
+- [x] **T71.5** Smoke: clean install + lint + typecheck on renamed workspace
 
 ---
 
