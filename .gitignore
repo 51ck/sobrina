@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env*.example
+node_modules/
+dist/
+data/
+*.db
+.DS_Store
+context_portal/
+logs/
+__pycache__/
+*.pyc
