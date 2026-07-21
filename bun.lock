@@ -1,0 +1,25 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "sobrina",
+    },
+    "packages/core": {
+      "name": "@sobrina/core",
+      "version": "0.0.0",
+    },
+    "packages/telegram": {
+      "name": "@sobrina/telegram",
+      "version": "0.0.0",
+      "dependencies": {
+        "@sobrina/core": "workspace:*",
+      },
+    },
+  },
+  "packages": {
+    "@sobrina/core": ["@sobrina/core@workspace:packages/core"],
+
+    "@sobrina/telegram": ["@sobrina/telegram@workspace:packages/telegram"],
+  }
+}

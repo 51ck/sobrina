@@ -2,7 +2,7 @@
 
 Telegram group sobriety companion — agentic core, conversational Check-ins, Reminder + Deadline rhythm.
 
-**Status:** product specification phase. No application code yet.
+**Status:** Bun workspace monorepo scaffold (`@sobrina/core`, `@sobrina/telegram`). Architecture and tickets: [`tech/`](tech/).
 
 ## Docs
 
@@ -10,7 +10,7 @@ Telegram group sobriety companion — agentic core, conversational Check-ins, Re
 |------|------|
 | [`CONTEXT.md`](CONTEXT.md) | Ubiquitous language |
 | [`spec/`](spec/) | Product idea (implementation-free) |
-| [`tech/`](tech/) | Architecture stub (stack later) |
+| [`tech/`](tech/) | Architecture + ticket boards |
 | [`docs/adr/`](docs/adr/) | Decisions |
 
 ## Related
