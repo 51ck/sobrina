@@ -6,3 +6,11 @@ export {
   MissingFoundationEnvError,
   type FoundationConfig,
 } from "./config.ts";
+
+export {
+  openStore,
+  SQLITE_ACCESS,
+  type Store,
+} from "./store.ts";
+
+export { migrate, MIGRATIONS, type Migration } from "./migrate.ts";
