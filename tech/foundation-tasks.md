@@ -76,7 +76,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 - [x] **T3.1** Add **oxlint** as root/dev dependency; `bun run lint` runs oxlint on `packages`
 - [x] **T3.2** Lint clean on current stubs; document `bun run lint` + `bun run typecheck` as the local gate
-- [ ] **T3.3** Optional `.githooks`: pre-commit runs lint + typecheck; root `prepare` enables hooksPath when desired. Closeout: optional — leave `[ ]` until chosen, or mark cancelled per [tickets.md](tickets.md) if skipped
+- [x] **T3.3** Optional `.githooks`: pre-commit runs lint + typecheck; root `prepare` enables hooksPath when desired. Closeout: optional — leave `[ ]` until chosen, or mark cancelled per [tickets.md](tickets.md) if skipped
 - [ ] **T3.4** Tiny intentional lint/type smoke: confirm scripts fail on a deliberate break, then revert (do not leave breakage)
 
 ---
