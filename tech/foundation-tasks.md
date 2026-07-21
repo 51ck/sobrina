@@ -130,7 +130,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 - [x] **T5.2** `openStore(path)`: create parent dir if needed; open file; basic pragma hygiene (e.g. foreign_keys on) as appropriate; pair with `close`
 - [x] **T5.3** Migration runner skeleton on the store from `openStore`: ordered migrations list + applied-versions table
 - [x] **T5.4** Migration `001`: empty product schema placeholder + runner metadata only (or no-op product tables) — prove migrate-up works
-- [ ] **T5.5** Unit/smoke test: temp DB path → `openStore` → migrate → versions table present → `close` (`bun test` in core)
+- [x] **T5.5** Unit/smoke test: temp DB path → `openStore` → migrate → versions table present → `close` (`bun test` in core)
 
 ---
 
