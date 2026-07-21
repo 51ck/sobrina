@@ -4,6 +4,10 @@ Telegram group sobriety companion — agentic core, conversational Check-ins, Re
 
 **Status:** Bun workspace monorepo scaffold (`@sobrina/core`, `@sobrina/telegram`). Architecture and tickets: [`tech/`](tech/).
 
+**Local gate:** `bun run lint` (oxlint on `packages`) and `bun run typecheck` (`tsc --noEmit` across workspace packages).
+
+**Boot (foundation):** copy `.env.example` → `.env`, set `DATABASE_PATH` to a local SQLite path, then `bun run boot` (config → open DB → migrate → exit 0). Missing `DATABASE_PATH` fails with an actionable error.
+
 ## Docs
 
 | Path | Role |

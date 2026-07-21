@@ -53,10 +53,10 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [ ] **T2.1** Root `tsconfig.base.json` (strict baseline, ESM-friendly) shared by packages
-- [ ] **T2.2** Per-package `tsconfig.json` extending base; include only that package’s `src`
-- [ ] **T2.3** Each package `typecheck` script (`tsc --noEmit`); root `typecheck` runs all via Bun filter/workspaces
-- [ ] **T2.4** Verify stub packages typecheck clean after T1 stubs
+- [x] **T2.1** Root `tsconfig.base.json` (strict baseline, ESM-friendly) shared by packages
+- [x] **T2.2** Per-package `tsconfig.json` extending base; include only that package’s `src`
+- [x] **T2.3** Each package `typecheck` script (`tsc --noEmit`); root `typecheck` runs all via Bun filter/workspaces
+- [x] **T2.4** Verify stub packages typecheck clean after T1 stubs
 
 ---
 
@@ -74,10 +74,10 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [ ] **T3.1** Add **oxlint** as root/dev dependency; `bun run lint` runs oxlint on `packages`
-- [ ] **T3.2** Lint clean on current stubs; document `bun run lint` + `bun run typecheck` as the local gate
-- [ ] **T3.3** Optional `.githooks`: pre-commit runs lint + typecheck; root `prepare` enables hooksPath when desired. Closeout: optional — leave `[ ]` until chosen, or mark cancelled per [tickets.md](tickets.md) if skipped
-- [ ] **T3.4** Tiny intentional lint/type smoke: confirm scripts fail on a deliberate break, then revert (do not leave breakage)
+- [x] **T3.1** Add **oxlint** as root/dev dependency; `bun run lint` runs oxlint on `packages`
+- [x] **T3.2** Lint clean on current stubs; document `bun run lint` + `bun run typecheck` as the local gate
+- [x] **T3.3** Optional `.githooks`: pre-commit runs lint + typecheck; root `prepare` enables hooksPath when desired. Closeout: optional — leave `[ ]` until chosen, or mark cancelled per [tickets.md](tickets.md) if skipped
+- [x] **T3.4** Tiny intentional lint/type smoke: confirm scripts fail on a deliberate break, then revert (do not leave breakage)
 
 ---
 
@@ -105,10 +105,10 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [ ] **T4.1** `.env.example` with names only (empty values / placeholders); ensure `.env` gitignored
-- [ ] **T4.2** Core config module: read `DATABASE_PATH` (and any other foundation-required names); typed result
-- [ ] **T4.3** Fail fast with actionable message when required foundation env missing
-- [ ] **T4.4** Document optional vs required names for foundation vs later boards (short comment in `.env.example` or config module)
+- [x] **T4.1** `.env.example` with names only (empty values / placeholders); ensure `.env` gitignored
+- [x] **T4.2** Core config module: read `DATABASE_PATH` (and any other foundation-required names); typed result
+- [x] **T4.3** Fail fast with actionable message when required foundation env missing
+- [x] **T4.4** Document optional vs required names for foundation vs later boards (short comment in `.env.example` or config module)
 
 ---
 
@@ -126,11 +126,11 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [ ] **T5.1** Choose SQLite access approach for Bun (document choice in a short code comment or `packages/core` note); add dependency on `@sobrina/core` only
-- [ ] **T5.2** `openStore(path)`: create parent dir if needed; open file; basic pragma hygiene (e.g. foreign_keys on) as appropriate; pair with `close`
-- [ ] **T5.3** Migration runner skeleton on the store from `openStore`: ordered migrations list + applied-versions table
-- [ ] **T5.4** Migration `001`: empty product schema placeholder + runner metadata only (or no-op product tables) — prove migrate-up works
-- [ ] **T5.5** Unit/smoke test: temp DB path → `openStore` → migrate → versions table present → `close` (`bun test` in core)
+- [x] **T5.1** Choose SQLite access approach for Bun (document choice in a short code comment or `packages/core` note); add dependency on `@sobrina/core` only
+- [x] **T5.2** `openStore(path)`: create parent dir if needed; open file; basic pragma hygiene (e.g. foreign_keys on) as appropriate; pair with `close`
+- [x] **T5.3** Migration runner skeleton on the store from `openStore`: ordered migrations list + applied-versions table
+- [x] **T5.4** Migration `001`: empty product schema placeholder + runner metadata only (or no-op product tables) — prove migrate-up works
+- [x] **T5.5** Unit/smoke test: temp DB path → `openStore` → migrate → versions table present → `close` (`bun test` in core)
 
 ---
 
@@ -148,10 +148,10 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [ ] **T6.1** Core boot entry (`packages/core/src/boot.ts` or equivalent): config → `openStore` → migrate → log success → `close` → exit 0
-- [ ] **T6.2** Root package script wiring the boot entry
-- [ ] **T6.3** Manual verify steps in board or README: copy `.env.example` → set `DATABASE_PATH` → `bun run boot` succeeds
-- [ ] **T6.4** Boot fails clearly when `DATABASE_PATH` unset (integrates T4.3)
+- [x] **T6.1** Core boot entry (`packages/core/src/boot.ts` or equivalent): config → `openStore` → migrate → log success → `close` → exit 0
+- [x] **T6.2** Root package script wiring the boot entry
+- [x] **T6.3** Manual verify steps in board or README: copy `.env.example` → set `DATABASE_PATH` → `bun run boot` succeeds
+- [x] **T6.4** Boot fails clearly when `DATABASE_PATH` unset (integrates T4.3)
 
 ---
 
