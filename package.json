@@ -5,6 +5,9 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "lint": "echo \"lint: wire in T3\" && exit 0",
-    "typecheck": "echo \"typecheck: wire in T2\" && exit 0"
+    "typecheck": "bun run --filter '@sobrina/*' typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
   }
 }

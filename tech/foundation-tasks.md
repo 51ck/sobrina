@@ -53,10 +53,10 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [ ] **T2.1** Root `tsconfig.base.json` (strict baseline, ESM-friendly) shared by packages
-- [ ] **T2.2** Per-package `tsconfig.json` extending base; include only that package’s `src`
-- [ ] **T2.3** Each package `typecheck` script (`tsc --noEmit`); root `typecheck` runs all via Bun filter/workspaces
-- [ ] **T2.4** Verify stub packages typecheck clean after T1 stubs
+- [x] **T2.1** Root `tsconfig.base.json` (strict baseline, ESM-friendly) shared by packages
+- [x] **T2.2** Per-package `tsconfig.json` extending base; include only that package’s `src`
+- [x] **T2.3** Each package `typecheck` script (`tsc --noEmit`); root `typecheck` runs all via Bun filter/workspaces
+- [x] **T2.4** Verify stub packages typecheck clean after T1 stubs
 
 ---
 
