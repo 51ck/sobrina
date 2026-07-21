@@ -30,7 +30,7 @@ She may not:
 |------------|---------|
 | **Remind** | Post Reminder at scheduled time |
 | **Record Check-in** | Sober / slip intent → status via rules |
-| **Correct Check-in** | Late fix within window; refund token if needed |
+| **Correct Check-in** | Late fix until next Reminder; refund token if needed |
 | **Close Day** | Deadline: auto-slip silent Checklist; then Summary |
 | **Ask with options** | Closed choices; caption length limited |
 | **Answer progress** | Narrate tool-backed stats |

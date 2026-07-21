@@ -1,6 +1,6 @@
 # Roadmap
 
-Product phases — not build tickets. Tickets will live under `tech/` later.
+Product phases — not build tickets. Phase 1 boards all live under `tech/` (foundation, core, telegram, agent — see [`tech/tickets.md`](../tech/tickets.md)).
 
 ## Phase 0 — Spec lock (current)
 

@@ -21,7 +21,7 @@ Root DOX owns repo-wide agent contracts. `tech/` owns how ideas become systems. 
 ## Local Contracts
 
 - Idea docs stay implementation-free: no stack names, no library choices, no source-tree layouts for code, no API schemas
-- Roadmap phases are product milestones, not build tickets — tickets live under `tech/` later
+- Roadmap phases are product milestones, not build tickets — Phase 1 tickets live under `tech/`
 - Locked product decisions live in the docs below; change them by editing the owning doc, then refresh this index if files move
 - Open questions stay labeled as open — do not pretend resolved
 - Terms must match [`CONTEXT.md`](../CONTEXT.md); conflict → fix glossary or SPEC

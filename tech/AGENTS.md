@@ -6,10 +6,10 @@ Own how the product idea in [spec/](../spec/AGENTS.md) becomes a running system.
 
 ## Ownership
 
-- Runtime architecture and stack (planned: Bun workspaces, Mastra, Grammy, SQLite — detail when SPEC phase ends)
-- Sobrina core vs channel adapters
+- Runtime architecture and stack (Bun workspaces, Mastra, Grammy, SQLite)
+- Sobrina core vs channel adapters (`@sobrina/core`, `@sobrina/telegram`)
 - Deploy and env naming (not values)
-- In-repo ticket boards (to be added)
+- In-repo ticket system + theme boards ([tickets.md](tickets.md))
 
 Does not own product vision (`spec/`) or glossary (`CONTEXT.md`).
 
@@ -21,16 +21,26 @@ Does not own product vision (`spec/`) or glossary (`CONTEXT.md`).
 - No secrets in repo
 - `askWithOptions` must enforce **caption length limit** (exact max when implemented)
 - Build tickets live under `tech/` — not in `spec/`
+- Ticket boards follow [tickets.md](tickets.md); index every board below
 
 ## Work Guidance
 
 - Spec-first: lock or update `spec/` before behavior work
-- Prefer prophet-shaped packages: `core` + `telegram` (when code starts)
+- Prefer prophet-shaped packages: `core` + `telegram`
+- Agentic build: take one open slice from a board; mark `[x]` when done; commit message refs the ID
 
 ## Verification
 
-_(none yet — no lint/test harness in this phase)_
+- When scaffold exists: `bun run lint`, `bun run typecheck` (see [foundation-tasks.md](foundation-tasks.md))
+- Package tests via `bun test` when present
 
 ## Child DOX Index
 
-_(none yet)_
+| Path | Owns |
+|------|------|
+| [architecture.md](architecture.md) | System shape: core vs telegram, Session hub, durable verbs vs agent, scheduler, SQLite, Mastra |
+| [tickets.md](tickets.md) | In-repo ticket process (boards, IDs, agent loop, implementer/reviewer) |
+| [foundation-tasks.md](foundation-tasks.md) | Foundation board: monorepo, env, lint/typecheck, DB, boot (T1–T6) |
+| [core-tasks.md](core-tasks.md) | Core board: ledger, Grace Token, Session hub, scheduler, durable verbs (T10–T24) |
+| [telegram-tasks.md](telegram-tasks.md) | Telegram board: Grammy group adapter, `/settings`, Reminder buttons, Summary delivery (T30–T43) |
+| [agent-tasks.md](agent-tasks.md) | Agent board: Mastra agent, character prompts, Session turns, Summary/stats voice (T50–T60) |
