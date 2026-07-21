@@ -7,4 +7,8 @@ export {
   type FoundationConfig,
 } from "./config.ts";
 
-export { SQLITE_ACCESS } from "./store.ts";
+export {
+  openStore,
+  SQLITE_ACCESS,
+  type Store,
+} from "./store.ts";
