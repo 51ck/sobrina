@@ -1,6 +1,6 @@
-# Sobrina
+# Sobri
 
-Telegram group sobriety companion: conversational Check-ins, Reminder + Deadline Days, Grace Token, chat memory, agentic Sessions.
+Telegram group sobriety companion: conversational Check-ins, Reminder + Deadline Days, Grace Token, chat memory, agentic Sessions. Selectable **Character** faces (voice/gender) under one continuous person.
 
 ## Language
 
@@ -28,7 +28,7 @@ Scheduled close of the Day; auto-slip for silent Checklist members; then Day Sum
 _RU_: дедлайн · «время закрытия дня»
 
 **Day resolution**:
-Which Day a Check-in targets when speech is ambiguous: explicit day → open Day → fixable previous Day → current/upcoming; Sobrina asks if unclear.
+Which Day a Check-in targets when speech is ambiguous: explicit day → open Day → fixable previous Day → current/upcoming; Sobri asks if unclear.
 
 **Late fix**:
 Correcting a Check-in after Deadline until the chat’s next Reminder. Sober correction refunds a spent Grace Token.
@@ -73,5 +73,12 @@ _RU_: итог дня
 **askWithOptions**:
 Channel-agnostic closed choice (buttons). Caption length limited. Reminder defaults to Красавчик / Оступился unless special chrome is truly needed. Free text still wins for Check-in intent.
 
-**Sobrina**:
-The agent person in the group — character, memory, conversational Check-ins; not a timed poll form.
+**Sobri**:
+The agent person in the group — continuous self across faces; character, memory, conversational Check-ins; not a timed poll form. Product name for the companion. Faces are voice/gender overlays, not other people.
+_Avoid_: Sobrina as the agent person; treating a face as a separate kinship identity
+_RU_: Собри
+
+**Character**:
+Closed catalog of selectable faces for Sobri in a chat. One Character per chat; admins choose (force-choose, no silent default). Ids: `pan` | `artemis` | `apollo` | `hestia`. Code names (admin title / RU): Пан / Артемида / Аполлон / Гестия. Archetypes are voice and gender — not kinship self-claims (agent never says “I’m your brother/sister”).
+_Avoid_: custom/user-authored faces; per-member Character; silent default face; kinship self-claim in product copy
+_RU_: персонаж · лица: Пан / Артемида / Аполлон / Гестия
