@@ -148,10 +148,10 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [ ] **T6.1** Core boot entry (`packages/core/src/boot.ts` or equivalent): config → `openStore` → migrate → log success → `close` → exit 0
-- [ ] **T6.2** Root package script wiring the boot entry
-- [ ] **T6.3** Manual verify steps in board or README: copy `.env.example` → set `DATABASE_PATH` → `bun run boot` succeeds
-- [ ] **T6.4** Boot fails clearly when `DATABASE_PATH` unset (integrates T4.3)
+- [x] **T6.1** Core boot entry (`packages/core/src/boot.ts` or equivalent): config → `openStore` → migrate → log success → `close` → exit 0
+- [x] **T6.2** Root package script wiring the boot entry
+- [x] **T6.3** Manual verify steps in board or README: copy `.env.example` → set `DATABASE_PATH` → `bun run boot` succeeds
+- [x] **T6.4** Boot fails clearly when `DATABASE_PATH` unset (integrates T4.3)
 
 ---
 
