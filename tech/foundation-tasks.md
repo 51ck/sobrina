@@ -33,7 +33,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 - [x] **T1.1** Root `package.json`: private workspaces `packages/*`, `"type": "module"`, placeholder root scripts
 - [x] **T1.2** `packages/core`: `@sobrina/core` package.json + minimal `src/index.ts` export stub
-- [ ] **T1.3** `packages/telegram`: `@sobrina/telegram` package.json depending on `@sobrina/core` + minimal `src/index.ts` stub
+- [x] **T1.3** `packages/telegram`: `@sobrina/telegram` package.json depending on `@sobrina/core` + minimal `src/index.ts` stub
 - [ ] **T1.4** Root README status line: monorepo scaffold exists; point to `tech/` for architecture/tickets (no product rewrite)
 - [ ] **T1.5** `bun install` succeeds on a clean checkout; `bun.lock` committed
 
