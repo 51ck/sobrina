@@ -12,3 +12,5 @@ export {
   SQLITE_ACCESS,
   type Store,
 } from "./store.ts";
+
+export { migrate, MIGRATIONS, type Migration } from "./migrate.ts";
