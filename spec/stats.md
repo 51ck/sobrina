@@ -1,6 +1,6 @@
 # Stats and fairness rules
 
-Rule-owned ledger. Sobrina calls durable verbs; she narrates results — she does not invent statuses or streak numbers.
+Rule-owned ledger. Sobri calls durable verbs; narrates results — does not invent statuses or streak numbers.
 
 Glossary: [`../CONTEXT.md`](../CONTEXT.md). ADR: [0001](../docs/adr/0001-grace-token.md), [0005](../docs/adr/0005-late-fix-until-next-reminder.md).
 
@@ -24,7 +24,7 @@ No separate `missed` / `absent` status. Deadline silence is a slip-class write.
 | With token | → `minor_slip`, token gone |
 | Without token | → `major_slip` |
 | Late fix to sober | Refund token if that Check-in spent one |
-| Visibility | In stats; Sobrina may remind |
+| Visibility | In stats; Sobri may remind |
 
 Replaces V1 invisible grace threshold.
 

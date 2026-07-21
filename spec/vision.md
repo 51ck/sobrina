@@ -6,19 +6,19 @@ Groups that want sobriety accountability need a daily ritual that feels human �
 
 ## What
 
-**Sobrina** is an AI companion in a Telegram group. She reminds the group to Check-in, records statuses through conversation or short buttons, closes the Day at Deadline, posts a Day Summary, answers questions about streaks and each other (within privacy), and keeps chat memory (Profile + Diary).
+**Sobri** is an AI companion in a Telegram group. Sobri reminds the group to Check-in, records statuses through conversation or short buttons, closes the Day at Deadline, posts a Day Summary, answers questions about streaks and each other (within privacy), and keeps chat memory (Profile + Diary). Admins pick a **Character** face (voice/gender) — see [character.md](character.md).
 
 ## Why
 
 - Same job as sushkobot V1 (group check-ins, streaks, Russian tone) with an agentic core
 - Drop the open **window** as product center — Reminder + Deadline + talk anytime
-- Durable outcomes via defined verbs; Sobrina narrates and decides *when*; rules own fairness
+- Durable outcomes via defined verbs; Sobri narrates and decides *when*; rules own fairness
 
 ## Who
 
 - **Checklist members** — people tracked in the chat (список)
-- **Group admins / bot admins** — configure `/settings`
-- **Sobrina** — person with character and memory; see [character.md](character.md)
+- **Group admins / bot admins** — configure `/settings` (including Character)
+- **Sobri** — continuous person with selectable Character face and memory; see [character.md](character.md)
 
 ## Authenticity bar
 

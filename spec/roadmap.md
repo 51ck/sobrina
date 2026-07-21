@@ -40,3 +40,4 @@ Product phases — not build tickets. Phase 1 boards live under `tech/` (foundat
 - Per-person Reminder times
 - Monetization
 - Intox “quality / hollow milestone” surface from V1 (Antistreak exists under the hood only)
+- Diary Character mark before Diary exists
