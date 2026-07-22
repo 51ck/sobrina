@@ -103,15 +103,21 @@ Batch workflow for building a whole theme with subagents. Extends the operating 
 
 1. **Fresh implementer subagent per ticket** — clean context; coordinator passes a tight brief (slice ID, branch, previous commit = review fixed point). No shared implementer across the chunk.
 2. Implementer: read board + spec/ADR/DOX for the slice → `/implement` (TDD at agreed seams where possible) → scoped verify: `bun run lint`, `bun run typecheck`, tests of touched packages.
-3. **`/code-review` gate per ticket** — Standards + Spec subagents on the *uncommitted work vs HEAD* (scoped to this slice only, not the whole branch).
+3. **`/code-review` gate per ticket** — Standards + Spec on the *uncommitted work vs HEAD* (scoped to this slice only, not the whole branch). Reviews run **synchronously**: spawn reviewers with `run_in_background: false`, or self-review in-context (see review-independence rule below). Never end a worker turn with reviews in flight.
 4. Findings go back to the **implementer** to fix; reviewer never edits. Max **2 revise rounds** per gate, then stop and escalate to a human.
-5. On approve: implementer marks `[x]`, stages only slice files, **one commit** refs the ID. Every commit on the branch is post-review green.
+5. On approve: implementer marks `[x]`, stages only slice files, **one commit** refs the ID. Every commit on the branch is post-review green. Exception: slices inseparable in one module may share one commit — message must list all IDs (e.g. `T13.1-T13.4`).
 
 **Per chunk (after last ticket):**
 
 6. Full verify once: `bun test` + `bun run lint` + `bun run typecheck`.
 7. **`/review-bugbot` once on branch changes** — not per ticket (Bugbot reviews merge-base → HEAD; per-ticket runs re-review earlier slices and repeat findings). Validate findings before acting; fix valid ones via implementer; commit fixes.
 8. Push, open PR (theme summary + Done-when as test plan). Human reviews and merges.
+
+**Worker contract (hard rules, learned from T10–T15 runs):**
+
+- Worker turn is done **only when the PR URL exists**. Ending a turn mid-chunk (e.g. "reviews in flight") counts as failure, not completion.
+- **Review independence:** in-context self-review is allowed for docs/light slices; **core-logic themes** (ledger verbs, Session hub, scheduler) require spawned cross-model reviewers. Bugbot + human PR review backstop both paths.
+- **Coordinator rule:** on a completion notification, verify branch/PR state before acting. Never run chunk steps (Bugbot, PR) while a worker is unconfirmed — resume the worker instead. Two writers on one branch is how double-PR races happen.
 
 **Model defaults (current, adjust freely — not a stable contract):**
 
