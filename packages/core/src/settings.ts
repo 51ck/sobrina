@@ -229,5 +229,7 @@ export function updateSettings(
       id,
     );
 
-  return next;
+  // Read-after-write (matches getOrCreateChat) — returns the persisted row,
+  // not just the in-memory patch result.
+  return readSettingsRow(store, id) as ChatSettings;
 }
