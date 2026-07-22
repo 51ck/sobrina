@@ -287,3 +287,80 @@ describe("T15.4 — refundGraceToken", () => {
     expect(() => refundGraceToken(store, "chat-1", "  ")).toThrow();
   });
 });
+
+describe("T15.5 — Grace Token rule matrix (ADR 0001 end-to-end)", () => {
+  const { freshStore } = useMigratedStore();
+  const N = 3;
+
+  test("full lifecycle: earn at N -> spend on slip -> major_slip without token -> re-earn at N -> late-fix refund", async () => {
+    const store = await freshStore();
+    const chat = "chat-1";
+    const member = "member-1";
+
+    // Sober streak below N: no token yet.
+    expect(maybeEarnGraceToken(store, chat, member, 2, N)).toBe(false);
+    expect(hasGraceToken(store, chat, member)).toBe(false);
+
+    // Streak reaches N: token earned (cap 1).
+    expect(maybeEarnGraceToken(store, chat, member, 3, N)).toBe(true);
+    expect(hasGraceToken(store, chat, member)).toBe(true);
+
+    // Explicit slip while holding a token: shielded, token spent.
+    const shielded = resolveSlip(store, chat, member);
+    expect(shielded).toEqual({ status: "minor_slip", spentToken: true });
+    expect(hasGraceToken(store, chat, member)).toBe(false);
+
+    // Next slip with no token held: unshielded.
+    const unshielded = resolveSlip(store, chat, member);
+    expect(unshielded).toEqual({ status: "major_slip", spentToken: false });
+
+    // Sober progress resumes and reaches N again: re-earn.
+    expect(maybeEarnGraceToken(store, chat, member, 3, N)).toBe(true);
+    expect(hasGraceToken(store, chat, member)).toBe(true);
+
+    // Spend it again via Deadline-silence-class slip.
+    const spentAgain = resolveSlip(store, chat, member);
+    expect(spentAgain.spentToken).toBe(true);
+    expect(hasGraceToken(store, chat, member)).toBe(false);
+
+    // Late fix corrects that Check-in to sober: refund.
+    refundGraceToken(store, chat, member);
+    expect(hasGraceToken(store, chat, member)).toBe(true);
+  });
+
+  test("cap 1 holds across earn/refund overlap: never more than one token, ever", async () => {
+    const store = await freshStore();
+    const chat = "chat-1";
+    const member = "member-1";
+
+    maybeEarnGraceToken(store, chat, member, N, N);
+    // Same-Day double earn attempt (e.g. re-evaluated twice) does not stack.
+    maybeEarnGraceToken(store, chat, member, N, N);
+    // A refund while already holding one (e.g. re-earned before a late fix
+    // resolves) also does not stack.
+    refundGraceToken(store, chat, member);
+
+    expect(hasGraceToken(store, chat, member)).toBe(true);
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM grace_tokens WHERE chat_id = ? AND member_id = ?",
+      )
+      .get(chat, member) as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("Grace Token state does not leak across members or chats sharing the rule matrix", async () => {
+    const store = await freshStore();
+    maybeEarnGraceToken(store, "chat-1", "member-1", N, N);
+    resolveSlip(store, "chat-1", "member-1");
+
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "member-2")).toBe(false);
+    expect(hasGraceToken(store, "chat-2", "member-1")).toBe(false);
+
+    // member-2 independently earns and keeps their own token.
+    maybeEarnGraceToken(store, "chat-1", "member-2", N, N);
+    expect(hasGraceToken(store, "chat-1", "member-2")).toBe(true);
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+  });
+});
