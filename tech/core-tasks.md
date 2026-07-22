@@ -210,7 +210,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 **Tasks:**
 
 - [x] **T17.1** Helper: is late fix still allowed now? (after Day closed, **until next Reminder** in chat TZ)
-- [ ] **T17.2** `correctCheckIn` → new status; apply refund when correcting to sober if token was spent
+- [x] **T17.2** `correctCheckIn` → new status; apply refund when correcting to sober if token was spent
 - [ ] **T17.3** Reject corrections after the late-fix period ends (once next Reminder has passed)
 - [ ] **T17.4** Tests: auto-slip → sober refund; correction after next Reminder rejected; open-Day ordinary record still via T14 not late-fix
 

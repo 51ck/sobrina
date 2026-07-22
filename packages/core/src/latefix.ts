@@ -5,10 +5,11 @@
  *
  * This module owns exactly one question, pure(ish) against the store —
  * "may this closed Day still be corrected at `now`?" — via
- * {@link isLateFixAllowed}. It does **not** write a correction
- * (`correctCheckIn` is T17.2) and does not implement a reject-after-
- * window write path (T17.3); those verbs call this helper (or its
- * {@link nextReminderAfterDay} fence) rather than duplicating the rule.
+ * {@link isLateFixAllowed} (T17.1). It also owns the write verb built on
+ * top, {@link correctCheckIn} (T17.2), so the late-fix window and the
+ * late-fix write live in one place rather than being split across
+ * `checkin.ts` and here. T17.3 (deepened reject-path tests) extends this
+ * same verb rather than adding a new one.
  *
  * ## Locked semantics (T17.1)
  *
@@ -82,14 +83,77 @@
  *
  * `now` defaults to `new Date()` but is always an injectable parameter —
  * never hardcoded inside the decision — so tests can pin an instant.
+ *
+ * ## T17.2 — correctCheckIn
+ *
+ * {@link correctCheckIn} corrects the stored status of an **existing**
+ * Check-in on a **closed** Day, during the late-fix window
+ * {@link isLateFixAllowed} defines. It reuses `checkin.ts`'s write
+ * primitives rather than duplicating them:
+ *
+ * - **To `sober`**: {@link writeSober} (checkin.ts) — refunds a Grace
+ *   Token first if the row being overwritten had `spentGraceToken` true
+ *   (spec/stats.md "Late fix to sober: refund token if that Check-in
+ *   spent one"), then writes `sober` with `spent_grace_token` cleared.
+ *   This is the ticket's minimum-required behavior.
+ * - **To `slip`**: {@link resolveSlip} (grace.ts) then {@link writeSlip}
+ *   (checkin.ts) — identical to T14.2's open-Day slip write: a held
+ *   token shields (`minor_slip`, spent) or not (`major_slip`). Product-
+ *   minimal choice for "member might correct TO slip" (ticket guidance):
+ *   this does **not** refund a previously spent token when correcting
+ *   slip → slip (e.g. changing class) — matches the same asymmetry
+ *   `checkin.ts`'s module doc already documents for same-Day re-slip,
+ *   so late fix does not introduce a new rule, just reuses the existing
+ *   one on a closed Day.
+ *
+ * **Gates, in order** (all inside one `store.db.transaction`):
+ *
+ * 1. Blank `chatId` / `memberId` / `dayKey` → plain `Error` (module
+ *    convention).
+ * 2. Not on the Checklist → {@link NotOnChecklistError} (checkin.ts,
+ *    reused as-is — "same as record" per ticket guidance).
+ * 3. {@link isLateFixAllowed} false → {@link LateFixNotAllowedError}. Its
+ *    `reason` distinguishes the ticket's explicit cases: `"day-missing"`
+ *    (never opened — nothing to fix), `"day-open"` (ordinary Check-in is
+ *    T14's `recordCheckIn`, not this verb), `"past-fence"` (ADR 0005
+ *    window elapsed — the case T17.3 will deepen). `isLateFixAllowed`'s
+ *    own {@link LateFixFenceUnknownError} (unset `reminderTime`) is not
+ *    caught here — it propagates, since that is a configuration gap, not
+ *    a normal reject (module doc "Unknown fence").
+ * 4. No existing Check-in row for `(chatId, memberId, dayKey)` →
+ *    {@link CheckInNotFoundError}. Ticket guidance: "late fix is correct
+ *    after Deadline auto-slip — typically row exists"; spec/daily-
+ *    rhythm.md says a member "may correct **a** Check-in" (an existing
+ *    one), so a missing row is a clear reject rather than a late first
+ *    Check-in created through this verb — creating one is T14/T16's job
+ *    (`recordCheckIn` / the Deadline auto-slip), always run before a Day
+ *    closes.
+ *
+ * A rejected correction never mutates the existing row, mirroring
+ * `checkin.ts`'s closed-Day reject guarantee — every throw above fires
+ * before {@link writeSober} / {@link resolveSlip} / {@link writeSlip}
+ * ever runs.
+ *
+ * `now` is threaded straight through to {@link isLateFixAllowed} (same
+ * injectable-`now` convention as this module's other exports).
  */
 import type { Store } from "./store.ts";
+import { isOnChecklist } from "./checklist.ts";
+import {
+  getCheckIn,
+  writeSlip,
+  writeSober,
+  NotOnChecklistError,
+  type CheckIn,
+  type CheckInIntent,
+} from "./checkin.ts";
 import {
   getDay,
   instantFromLocalClock,
   shiftDayKey,
   type DayKey,
 } from "./day.ts";
+import { resolveSlip } from "./grace.ts";
 import { getSettings, type ChatSettings } from "./settings.ts";
 
 /**
@@ -114,6 +178,14 @@ function requireChatId(chatId: string): string {
   const trimmed = chatId.trim();
   if (!trimmed) {
     throw new Error("chatId must be non-empty");
+  }
+  return trimmed;
+}
+
+function requireMemberId(memberId: string): string {
+  const trimmed = memberId.trim();
+  if (!trimmed) {
+    throw new Error("memberId must be non-empty");
   }
   return trimmed;
 }
@@ -176,4 +248,118 @@ export function isLateFixAllowed(
   const settings = getSettings(store, chat);
   const fence = nextReminderAfterDay(settings, key, chat);
   return now.getTime() < fence.getTime();
+}
+
+/**
+ * Why {@link correctCheckIn} rejected via {@link LateFixNotAllowedError}
+ * — see module doc "T17.2 — correctCheckIn" gate 3. `"past-fence"`
+ * covers both "next Reminder already passed" and the ADR 0005 zero-
+ * length-window boundary case (module doc "Next Reminder fence").
+ */
+export type LateFixRejectReason = "day-missing" | "day-open" | "past-fence";
+
+/**
+ * Thrown by {@link correctCheckIn} when {@link isLateFixAllowed} is
+ * `false` for `(chatId, dayKey)` at the call's `now` — see module doc
+ * "T17.2 — correctCheckIn" gate 3 and {@link LateFixRejectReason}.
+ */
+export class LateFixNotAllowedError extends Error {
+  override readonly name = "LateFixNotAllowedError";
+
+  constructor(
+    readonly chatId: string,
+    readonly dayKey: DayKey,
+    readonly reason: LateFixRejectReason,
+  ) {
+    super(LateFixNotAllowedError.describe(chatId, dayKey, reason));
+  }
+
+  private static describe(
+    chatId: string,
+    dayKey: DayKey,
+    reason: LateFixRejectReason,
+  ): string {
+    switch (reason) {
+      case "day-missing":
+        return `Late fix not allowed: ${chatId}/${dayKey} was never opened — nothing to fix.`;
+      case "day-open":
+        return `Late fix not allowed: ${chatId}/${dayKey} is still open — use recordCheckIn (T14), not correctCheckIn.`;
+      case "past-fence":
+        return `Late fix not allowed: ${chatId}/${dayKey} is past the late-fix window (ADR 0005 — next Reminder already reached).`;
+    }
+  }
+}
+
+/**
+ * Thrown by {@link correctCheckIn} when no Check-in row exists yet for
+ * `(chatId, memberId, dayKey)` — see module doc "T17.2 — correctCheckIn"
+ * gate 4.
+ */
+export class CheckInNotFoundError extends Error {
+  override readonly name = "CheckInNotFoundError";
+
+  constructor(
+    readonly chatId: string,
+    readonly memberId: string,
+    readonly dayKey: DayKey,
+  ) {
+    super(
+      `No Check-in to correct: ${chatId}/${memberId}/${dayKey}. Late fix corrects an existing Check-in; record one first (T14 recordCheckIn / T16 Deadline auto-slip) before the Day closes.`,
+    );
+  }
+}
+
+/**
+ * Correct a Check-in's stored status on a **closed** Day during the
+ * late-fix window (T17.2, ADR 0005) — see module doc "T17.2 —
+ * correctCheckIn" for the full write behavior and gate order.
+ *
+ * Requires Checklist membership (same as `recordCheckIn`), the late-fix
+ * window still open at `now` per {@link isLateFixAllowed}, and an
+ * existing Check-in row for `(chatId, memberId, dayKey)`. Correcting to
+ * `sober` refunds a spent Grace Token via {@link writeSober}; correcting
+ * to `slip` re-resolves Grace Token rules via {@link resolveSlip} +
+ * {@link writeSlip}, same as an open-Day slip write.
+ *
+ * `now` defaults to `new Date()` but is always injectable — passed
+ * straight through to {@link isLateFixAllowed}.
+ */
+export function correctCheckIn(
+  store: Store,
+  chatId: string,
+  memberId: string,
+  dayKey: DayKey,
+  intent: CheckInIntent,
+  now: Date = new Date(),
+): CheckIn {
+  const chat = requireChatId(chatId);
+  const member = requireMemberId(memberId);
+  const key = requireDayKey(dayKey);
+
+  const run = store.db.transaction((): CheckIn => {
+    if (!isOnChecklist(store, chat, member)) {
+      throw new NotOnChecklistError(chat, member);
+    }
+
+    if (!isLateFixAllowed(store, chat, key, now)) {
+      const day = getDay(store, chat, key);
+      const reason: LateFixRejectReason = !day
+        ? "day-missing"
+        : day.status === "open"
+          ? "day-open"
+          : "past-fence";
+      throw new LateFixNotAllowedError(chat, key, reason);
+    }
+
+    if (!getCheckIn(store, chat, member, key)) {
+      throw new CheckInNotFoundError(chat, member, key);
+    }
+
+    if (intent === "slip") {
+      const resolution = resolveSlip(store, chat, member);
+      return writeSlip(store, chat, member, key, resolution);
+    }
+    return writeSober(store, chat, member, key);
+  });
+  return run();
 }

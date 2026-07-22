@@ -2,10 +2,17 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { getCheckIn, NotOnChecklistError } from "./checkin.ts";
+import { joinChecklist } from "./checklist.ts";
 import { closeDay, ensureOpenDay } from "./day.ts";
+import { closeDayAtDeadline } from "./deadline.ts";
+import { grantGraceToken, hasGraceToken } from "./grace.ts";
 import {
+  CheckInNotFoundError,
+  correctCheckIn,
   isLateFixAllowed,
   LateFixFenceUnknownError,
+  LateFixNotAllowedError,
   nextReminderAfterDay,
 } from "./latefix.ts";
 import { migrate } from "./migrate.ts";
@@ -253,5 +260,152 @@ describe("T17.1 — isLateFixAllowed", () => {
     const store = await freshStore();
     expect(() => isLateFixAllowed(store, "  ", "2026-07-22")).toThrow();
     expect(() => isLateFixAllowed(store, "chat-1", "  ")).toThrow();
+  });
+});
+
+describe("T17.2 — correctCheckIn", () => {
+  const { freshStore } = useMigratedStore();
+
+  async function setUpClosedDayChat(store: Store): Promise<void> {
+    getOrCreateChat(store, "chat-1");
+    updateSettings(store, "chat-1", {
+      timezone: "UTC",
+      reminderTime: "09:00",
+      deadlineTime: "21:00",
+    });
+    joinChecklist(store, "chat-1", "amy");
+  }
+
+  test("auto-slip (spent token) corrected to sober: status updates and token refunds", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+    grantGraceToken(store, "chat-1", "amy");
+
+    const { checkIns } = closeDayAtDeadline(store, "chat-1", "2026-07-22");
+    expect(checkIns).toHaveLength(1);
+    expect(checkIns[0]?.status).toBe("minor_slip");
+    expect(checkIns[0]?.spentGraceToken).toBe(true);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+
+    const now = new Date("2026-07-22T22:00:00Z"); // after Deadline, before next Reminder
+    const corrected = correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", now);
+
+    expect(corrected.status).toBe("sober");
+    expect(corrected.spentGraceToken).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(true);
+
+    const stored = getCheckIn(store, "chat-1", "amy", "2026-07-22");
+    expect(stored?.status).toBe("sober");
+    expect(stored?.spentGraceToken).toBe(false);
+  });
+
+  test("auto-slip (no token) corrected to sober: status updates, no token appears", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+    // No grantGraceToken — silence should resolve to major_slip.
+
+    const { checkIns } = closeDayAtDeadline(store, "chat-1", "2026-07-22");
+    expect(checkIns[0]?.status).toBe("major_slip");
+    expect(checkIns[0]?.spentGraceToken).toBe(false);
+
+    const now = new Date("2026-07-22T22:00:00Z");
+    const corrected = correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", now);
+
+    expect(corrected.status).toBe("sober");
+    expect(corrected.spentGraceToken).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+  });
+
+  test("correcting to slip re-resolves Grace Token rules (no refund on slip-to-slip)", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+    grantGraceToken(store, "chat-1", "amy");
+
+    closeDayAtDeadline(store, "chat-1", "2026-07-22"); // minor_slip, token spent
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+
+    const now = new Date("2026-07-22T22:00:00Z");
+    const corrected = correctCheckIn(store, "chat-1", "amy", "2026-07-22", "slip", now);
+
+    // No token available this time → major_slip, still no refund.
+    expect(corrected.status).toBe("major_slip");
+    expect(corrected.spentGraceToken).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+  });
+
+  test("rejects correction on an open Day (use recordCheckIn/T14 instead)", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    // No Day close — still open.
+
+    const now = new Date("2026-07-22T12:00:00Z");
+    expect(() =>
+      correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", now),
+    ).toThrow(LateFixNotAllowedError);
+  });
+
+  test("rejects correction past the late-fix fence (next Reminder already reached)", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+    grantGraceToken(store, "chat-1", "amy");
+    closeDayAtDeadline(store, "chat-1", "2026-07-22");
+
+    const pastFence = new Date("2026-07-23T09:00:00Z"); // exactly the next Reminder
+    expect(() =>
+      correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", pastFence),
+    ).toThrow(LateFixNotAllowedError);
+
+    // No mutation on the rejected attempt.
+    const stored = getCheckIn(store, "chat-1", "amy", "2026-07-22");
+    expect(stored?.status).toBe("minor_slip");
+    expect(stored?.spentGraceToken).toBe(true);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+  });
+
+  test("rejects correction on a Day that was never opened", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+
+    const now = new Date("2026-07-22T12:00:00Z");
+    expect(() =>
+      correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", now),
+    ).toThrow(LateFixNotAllowedError);
+  });
+
+  test("rejects when no Check-in row exists yet for the closed Day", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    closeDay(store, "chat-1", "2026-07-22"); // closed, but amy never checked in
+
+    const now = new Date("2026-07-22T22:00:00Z");
+    expect(() =>
+      correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", now),
+    ).toThrow(CheckInNotFoundError);
+  });
+
+  test("rejects correction from a member not on the Checklist", async () => {
+    const store = await freshStore();
+    await setUpClosedDayChat(store);
+    closeDayAtDeadline(store, "chat-1", "2026-07-22");
+
+    const now = new Date("2026-07-22T22:00:00Z");
+    expect(() =>
+      correctCheckIn(store, "chat-1", "stranger", "2026-07-22", "sober", now),
+    ).toThrow(NotOnChecklistError);
+  });
+
+  test("rejects blank chatId, memberId, or dayKey", async () => {
+    const store = await freshStore();
+    expect(() =>
+      correctCheckIn(store, "  ", "amy", "2026-07-22", "sober"),
+    ).toThrow();
+    expect(() =>
+      correctCheckIn(store, "chat-1", "  ", "2026-07-22", "sober"),
+    ).toThrow();
+    expect(() =>
+      correctCheckIn(store, "chat-1", "amy", "  ", "sober"),
+    ).toThrow();
   });
 });

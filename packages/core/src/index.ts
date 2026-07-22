@@ -63,6 +63,7 @@ export {
 export {
   recordCheckIn,
   joinAndRecordCheckIn,
+  getCheckIn,
   NotOnChecklistError,
   DayClosedError,
   type CheckIn,
@@ -80,6 +81,10 @@ export {
 export {
   isLateFixAllowed,
   nextReminderAfterDay,
+  correctCheckIn,
   LateFixFenceUnknownError,
+  LateFixNotAllowedError,
+  CheckInNotFoundError,
   type LateFixSettings,
+  type LateFixRejectReason,
 } from "./latefix.ts";
