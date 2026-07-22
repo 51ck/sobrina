@@ -3,8 +3,10 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  isOnChecklist,
   joinChecklist,
   leaveChecklist,
+  listChecklist,
   removeFromChecklist,
 } from "./checklist.ts";
 import { migrate } from "./migrate.ts";
@@ -155,5 +157,47 @@ describe("T12.3 — removeFromChecklist (admin path)", () => {
     removeFromChecklist(store, "chat-1", "member-1");
     const rejoined = joinChecklist(store, "chat-1", "member-1");
     expect(rejoined.memberId).toBe("member-1");
+  });
+});
+
+describe("T12.4 — listChecklist / isOnChecklist", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("listChecklist returns active members oldest-join-first, excludes left members", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    joinChecklist(store, "chat-1", "member-2");
+    joinChecklist(store, "chat-1", "member-3");
+    leaveChecklist(store, "chat-1", "member-2");
+
+    const list = listChecklist(store, "chat-1");
+    expect(list.map((m) => m.memberId)).toEqual(["member-1", "member-3"]);
+    expect(list[0]?.joinedAt).toBeTruthy();
+  });
+
+  test("listChecklist is empty for an unknown chat", async () => {
+    const store = await freshStore();
+    expect(listChecklist(store, "ghost-chat")).toEqual([]);
+  });
+
+  test("listChecklist does not leak members from another chat", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    joinChecklist(store, "chat-2", "member-2");
+
+    expect(listChecklist(store, "chat-1").map((m) => m.memberId)).toEqual([
+      "member-1",
+    ]);
+  });
+
+  test("isOnChecklist true while active, false after leave/remove or if never joined", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
+    expect(isOnChecklist(store, "chat-1", "member-2")).toBe(false);
+
+    leaveChecklist(store, "chat-1", "member-1");
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(false);
   });
 });

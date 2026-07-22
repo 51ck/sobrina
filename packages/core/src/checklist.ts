@@ -139,3 +139,43 @@ export function removeFromChecklist(
 ): void {
   leaveChecklist(store, chatId, memberId);
 }
+
+export type ChecklistMember = {
+  readonly memberId: string;
+  readonly joinedAt: string;
+};
+
+/**
+ * Active Checklist members for a chat (T12.4), oldest join first. Members
+ * who left are excluded — this is the read Deadline auto-slip and streak
+ * accounting use to find who is on the Checklist (tech/core-tasks.md T12
+ * Done when).
+ */
+export function listChecklist(
+  store: Store,
+  chatId: string,
+): ChecklistMember[] {
+  const chat = requireChatId(chatId);
+  const rows = store.db
+    .query(
+      `SELECT member_id, joined_at FROM checklist_members
+       WHERE chat_id = ? AND left_at IS NULL
+       ORDER BY joined_at ASC`,
+    )
+    .all(chat) as Array<{ member_id: string; joined_at: string }>;
+  return rows.map((row) => ({
+    memberId: row.member_id,
+    joinedAt: row.joined_at,
+  }));
+}
+
+/** Whether `memberId` is currently an active Checklist member (T12.4). */
+export function isOnChecklist(
+  store: Store,
+  chatId: string,
+  memberId: string,
+): boolean {
+  const chat = requireChatId(chatId);
+  const member = requireMemberId(memberId);
+  return readActiveRow(store, chat, member) !== null;
+}

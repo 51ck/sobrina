@@ -32,5 +32,8 @@ export {
   joinChecklist,
   leaveChecklist,
   removeFromChecklist,
+  listChecklist,
+  isOnChecklist,
   type ChecklistMembership,
+  type ChecklistMember,
 } from "./checklist.ts";
