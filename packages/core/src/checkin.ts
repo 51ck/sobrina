@@ -9,8 +9,33 @@
  * `minor_slip` | `major_slip` (CONTEXT.md). One row per (chatId,
  * memberId, dayKey) — UPSERT (T10.4 schema; product "one status per
  * member per Day"). This module owns the write path only; the Grace
- * Token rule matrix itself lives in T15 (grace.ts); full closed-Day
- * policy and the late-fix carve-out live in T14.4 / T17.
+ * Token rule matrix itself lives in T15 (grace.ts); the late-fix
+ * carve-out lives in T17.
+ *
+ * ## Reject cases (T14.4)
+ *
+ * Both {@link recordCheckIn} and {@link joinAndRecordCheckIn} throw
+ * rather than inventing a status (no `missed` / `absent`). This is the
+ * full reject-case policy for the Record Check-in verbs — nothing else
+ * in this module rejects a write:
+ *
+ * | Case | Thrown by | Error | Notes |
+ * |------|-----------|-------|-------|
+ * | Target Day already **closed** | both verbs, both intents (`sober` and `slip`) | {@link DayClosedError} | Late correction is **T17 only** — a closed Day is never reopened here. On `joinAndRecordCheckIn`, the join still lands (T14.3 behavior); only the write rejects. |
+ * | Member **not on the Checklist** | `recordCheckIn` only | {@link NotOnChecklistError} | `joinAndRecordCheckIn` never throws this — it joins first (T14.3), so membership always holds by the time it calls `recordCheckIn`. |
+ * | Blank `chatId` / `memberId` / `dayKey` (empty or whitespace-only) | both verbs | plain `Error` | Same "trim then require non-empty" guard used across `@sobri/core` (day.ts, checklist.ts, grace.ts, settings.ts) — no dedicated error class. |
+ *
+ * A rejected write never mutates an existing Check-in row for that Day.
+ * The Checklist-membership check, the Day-open check, and the write
+ * itself run inside one transaction (see "Membership + Day-open check +
+ * write" below), so `DayClosedError` / `NotOnChecklistError` always fires
+ * **before** {@link writeSober} or {@link writeSlip} ever runs — so
+ * before the sober-write refund (which reads, then updates the Grace
+ * Token store) and before either write's `check_ins` UPSERT. A prior
+ * Check-in for that Day, if any, is left exactly as it was (status,
+ * `spent_grace_token`, `updated_at` all unchanged); see checkin.test.ts
+ * for coverage of this with a prior Check-in already on the row before
+ * the Day closes.
  *
  * ## Scope decisions
  * - **Checklist membership:** requires the member already **on the
@@ -24,9 +49,9 @@
  *   plain read, so an early Check-in before the Day was otherwise
  *   opened still succeeds (spec/daily-rhythm.md Day resolution branch
  *   4). A `closed` Day is never reopened; this verb throws
- *   {@link DayClosedError} — an early, narrow slice of T14.4's full
- *   closed-Day policy (late corrections stay T17's job). Applies to both
- *   `sober` and `slip` intents.
+ *   {@link DayClosedError} for both `sober` and `slip` intents — the
+ *   full closed-Day reject policy (T14.4; late corrections stay T17's
+ *   job). See "Reject cases" above.
  * - **Non-member Check-in (T14.3):** {@link joinAndRecordCheckIn} is a
  *   thin, separately-named composition of {@link joinChecklist} (T12.1,
  *   idempotent) then {@link recordCheckIn} — ticket T14.3 Option A. Kept

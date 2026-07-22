@@ -193,6 +193,38 @@ describe("T14.1 — recordCheckIn (sober, open Day)", () => {
     expect(day.status).toBe("closed");
   });
 
+  test("T14.4 — closed-Day rejection of an opposite-intent write does not mutate a prior sober Check-in", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    const before = recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "sober");
+    closeDay(store, "chat-1", "2026-07-22");
+
+    expect(() =>
+      recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "slip"),
+    ).toThrow(DayClosedError);
+
+    const after = store.db
+      .query(
+        `SELECT status, spent_grace_token AS spentGraceToken, created_at AS createdAt, updated_at AS updatedAt
+         FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?`,
+      )
+      .get("chat-1", "member-1", "2026-07-22") as {
+      status: string;
+      spentGraceToken: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+    expect(after.status).toBe("sober");
+    expect(after.spentGraceToken).toBe(0);
+    expect(after.createdAt).toBe(before.createdAt);
+    expect(after.updatedAt).toBe(before.updatedAt);
+    const rows = store.db
+      .query("SELECT COUNT(*) AS n FROM check_ins")
+      .get() as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
   test("does not grant a Grace Token via the T15 interim currentStreak = 0 call", async () => {
     const store = await freshStore();
     joinChecklist(store, "chat-1", "member-1");
@@ -355,6 +387,44 @@ describe("T14.2 — recordCheckIn (slip, via Grace Token rules)", () => {
     expect(rows.n).toBe(0);
     expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
   });
+
+  test("T14.4 — closed-Day rejection of an opposite-intent write does not mutate a prior slip Check-in, and does not refund its spent token", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    grantGraceToken(store, "chat-1", "member-1");
+    const before = recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "slip");
+    expect(before.status).toBe("minor_slip");
+    expect(before.spentGraceToken).toBe(true);
+    closeDay(store, "chat-1", "2026-07-22");
+
+    // Sober would normally refund a spent token (writeSober) — the
+    // closed-Day check must fire first, so no refund happens either.
+    expect(() =>
+      recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "sober"),
+    ).toThrow(DayClosedError);
+
+    const after = store.db
+      .query(
+        `SELECT status, spent_grace_token AS spentGraceToken, created_at AS createdAt, updated_at AS updatedAt
+         FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?`,
+      )
+      .get("chat-1", "member-1", "2026-07-22") as {
+      status: string;
+      spentGraceToken: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+    expect(after.status).toBe("minor_slip");
+    expect(after.spentGraceToken).toBe(1);
+    expect(after.createdAt).toBe(before.createdAt);
+    expect(after.updatedAt).toBe(before.updatedAt);
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+    const rows = store.db
+      .query("SELECT COUNT(*) AS n FROM check_ins")
+      .get() as { n: number };
+    expect(rows.n).toBe(1);
+  });
 });
 
 describe("T14.3 — joinAndRecordCheckIn (non-member joins then records)", () => {
@@ -447,6 +517,21 @@ describe("T14.3 — joinAndRecordCheckIn (non-member joins then records)", () =>
     ).toThrow(DayClosedError);
     // Join still lands — closed-Day rejection is recordCheckIn's write-side
     // check, not a reason to withhold Checklist membership.
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
+    const rows = store.db
+      .query("SELECT COUNT(*) AS n FROM check_ins")
+      .get() as { n: number };
+    expect(rows.n).toBe(0);
+  });
+
+  test("T14.4 — throws DayClosedError for a non-member slip Check-in onto an already-closed Day (join still lands, write rejected)", async () => {
+    const store = await freshStore();
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    closeDay(store, "chat-1", "2026-07-22");
+
+    expect(() =>
+      joinAndRecordCheckIn(store, "chat-1", "member-1", "2026-07-22", "slip"),
+    ).toThrow(DayClosedError);
     expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
     const rows = store.db
       .query("SELECT COUNT(*) AS n FROM check_ins")
