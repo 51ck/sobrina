@@ -67,7 +67,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 **Tasks:**
 
 - [x] **T11.1** `getOrCreateChat(chatId)` + `getSettings(chatId)`
-- [ ] **T11.2** `updateSettings(chatId, patch)` — Reminder time, Deadline time, timezone, N; reject invalid values
+- [x] **T11.2** `updateSettings(chatId, patch)` — Reminder time, Deadline time, timezone, N; reject invalid values
 - [ ] **T11.3** Defaults: N = **3** when unset; document time/TZ representation chosen in core
 - [ ] **T11.4** Tests: create chat → defaults → patch N/times/TZ → read back
 

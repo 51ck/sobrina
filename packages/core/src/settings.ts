@@ -14,20 +14,44 @@ import type { Store } from "./store.ts";
 export const DEFAULT_TIMEZONE = "UTC";
 export const DEFAULT_GRACE_TOKEN_N = 3;
 
+/** Local wall-clock time `"HH:MM"` (24h) in the chat timezone, or unset. */
+export type ClockTime = string;
+
 export type ChatSettings = {
   readonly chatId: string;
-  readonly reminderTime: string | null;
-  readonly deadlineTime: string | null;
+  readonly reminderTime: ClockTime | null;
+  readonly deadlineTime: ClockTime | null;
   readonly timezone: string;
   readonly graceTokenN: number;
 };
 
-/** Thrown by {@link getSettings} for an unknown chat. */
+/** Partial update for {@link updateSettings}. Omitted keys stay unchanged. */
+export type ChatSettingsPatch = {
+  readonly reminderTime?: ClockTime | null;
+  readonly deadlineTime?: ClockTime | null;
+  readonly timezone?: string;
+  readonly graceTokenN?: number;
+};
+
+/** Thrown by {@link getSettings} / {@link updateSettings} for an unknown chat. */
 export class ChatNotFoundError extends Error {
   override readonly name = "ChatNotFoundError";
 
   constructor(readonly chatId: string) {
     super(`Chat not found: ${chatId}. Call getOrCreateChat first.`);
+  }
+}
+
+/** Thrown by {@link updateSettings} when a patch field fails validation. */
+export class InvalidSettingsError extends Error {
+  override readonly name = "InvalidSettingsError";
+
+  constructor(
+    readonly field: string,
+    readonly value: unknown,
+    reason: string,
+  ) {
+    super(`Invalid settings.${field}: ${reason}`);
   }
 }
 
@@ -38,6 +62,8 @@ type SettingsRow = {
   timezone: string;
   grace_token_n: number;
 };
+
+const HH_MM = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
 function toSettings(row: SettingsRow): ChatSettings {
   return {
@@ -66,6 +92,57 @@ function requireChatId(chatId: string): string {
   return trimmed;
 }
 
+function requireExistingSettings(store: Store, chatId: string): ChatSettings {
+  const settings = readSettingsRow(store, chatId);
+  if (!settings) {
+    throw new ChatNotFoundError(chatId);
+  }
+  return settings;
+}
+
+function validateClockTime(
+  field: "reminderTime" | "deadlineTime",
+  value: ClockTime | null,
+): ClockTime | null {
+  if (value === null) return null;
+  if (!HH_MM.test(value)) {
+    throw new InvalidSettingsError(
+      field,
+      value,
+      'expected "HH:MM" 24-hour local time or null',
+    );
+  }
+  return value;
+}
+
+function validateTimezone(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new InvalidSettingsError("timezone", value, "must be non-empty IANA name");
+  }
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: trimmed });
+  } catch {
+    throw new InvalidSettingsError(
+      "timezone",
+      value,
+      "must be a valid IANA timezone name",
+    );
+  }
+  return trimmed;
+}
+
+function validateGraceTokenN(value: number): number {
+  if (!Number.isInteger(value) || value < 1) {
+    throw new InvalidSettingsError(
+      "graceTokenN",
+      value,
+      "must be an integer >= 1",
+    );
+  }
+  return value;
+}
+
 /**
  * Ensure a chat (and its default settings row) exists; return its settings.
  * Idempotent — a second call for the same `chatId` returns the existing
@@ -87,9 +164,59 @@ export function getOrCreateChat(store: Store, chatId: string): ChatSettings {
 /** Read settings for an existing chat. Throws {@link ChatNotFoundError} otherwise. */
 export function getSettings(store: Store, chatId: string): ChatSettings {
   const id = requireChatId(chatId);
-  const settings = readSettingsRow(store, id);
-  if (!settings) {
-    throw new ChatNotFoundError(id);
-  }
-  return settings;
+  return requireExistingSettings(store, id);
+}
+
+/**
+ * Patch settings for an existing chat. Omitted keys stay unchanged.
+ * Rejects invalid times (`HH:MM` or null), IANA timezone, or N &lt; 1.
+ * Throws {@link ChatNotFoundError} / {@link InvalidSettingsError}.
+ */
+export function updateSettings(
+  store: Store,
+  chatId: string,
+  patch: ChatSettingsPatch,
+): ChatSettings {
+  const id = requireChatId(chatId);
+  const current = requireExistingSettings(store, id);
+
+  const next: ChatSettings = {
+    chatId: id,
+    reminderTime:
+      patch.reminderTime !== undefined
+        ? validateClockTime("reminderTime", patch.reminderTime)
+        : current.reminderTime,
+    deadlineTime:
+      patch.deadlineTime !== undefined
+        ? validateClockTime("deadlineTime", patch.deadlineTime)
+        : current.deadlineTime,
+    timezone:
+      patch.timezone !== undefined
+        ? validateTimezone(patch.timezone)
+        : current.timezone,
+    graceTokenN:
+      patch.graceTokenN !== undefined
+        ? validateGraceTokenN(patch.graceTokenN)
+        : current.graceTokenN,
+  };
+
+  store.db
+    .query(
+      `UPDATE chat_settings
+       SET reminder_time = ?,
+           deadline_time = ?,
+           timezone = ?,
+           grace_token_n = ?,
+           updated_at = datetime('now')
+       WHERE chat_id = ?`,
+    )
+    .run(
+      next.reminderTime,
+      next.deadlineTime,
+      next.timezone,
+      next.graceTokenN,
+      id,
+    );
+
+  return next;
 }

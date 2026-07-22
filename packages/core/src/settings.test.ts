@@ -6,7 +6,9 @@ import { migrate } from "./migrate.ts";
 import {
   getOrCreateChat,
   getSettings,
+  updateSettings,
   ChatNotFoundError,
+  InvalidSettingsError,
   DEFAULT_GRACE_TOKEN_N,
   DEFAULT_TIMEZONE,
 } from "./settings.ts";
@@ -84,5 +86,102 @@ describe("T11.1 — getOrCreateChat + getSettings", () => {
   test("getOrCreateChat rejects a blank chatId", async () => {
     const store = await freshStore();
     expect(() => getOrCreateChat(store, "  ")).toThrow();
+  });
+});
+
+describe("T11.2 — updateSettings", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("patches Reminder, Deadline, timezone, and N", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+
+    const updated = updateSettings(store, "chat-1", {
+      reminderTime: "21:00",
+      deadlineTime: "09:00",
+      timezone: "Europe/Moscow",
+      graceTokenN: 5,
+    });
+
+    expect(updated).toEqual({
+      chatId: "chat-1",
+      reminderTime: "21:00",
+      deadlineTime: "09:00",
+      timezone: "Europe/Moscow",
+      graceTokenN: 5,
+    });
+    expect(getSettings(store, "chat-1")).toEqual(updated);
+  });
+
+  test("partial patch leaves other fields unchanged", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    updateSettings(store, "chat-1", {
+      reminderTime: "20:30",
+      timezone: "Europe/Berlin",
+    });
+
+    const updated = updateSettings(store, "chat-1", { graceTokenN: 4 });
+    expect(updated.reminderTime).toBe("20:30");
+    expect(updated.timezone).toBe("Europe/Berlin");
+    expect(updated.graceTokenN).toBe(4);
+    expect(updated.deadlineTime).toBeNull();
+  });
+
+  test("null clears Reminder or Deadline time", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    updateSettings(store, "chat-1", {
+      reminderTime: "21:00",
+      deadlineTime: "09:00",
+    });
+
+    const updated = updateSettings(store, "chat-1", {
+      reminderTime: null,
+      deadlineTime: null,
+    });
+    expect(updated.reminderTime).toBeNull();
+    expect(updated.deadlineTime).toBeNull();
+  });
+
+  test("rejects invalid HH:MM times", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    for (const bad of ["25:00", "9:00", "21:60", "ab:cd", ""]) {
+      expect(() =>
+        updateSettings(store, "chat-1", { reminderTime: bad }),
+      ).toThrow(InvalidSettingsError);
+      expect(() =>
+        updateSettings(store, "chat-1", { deadlineTime: bad }),
+      ).toThrow(InvalidSettingsError);
+    }
+  });
+
+  test("rejects invalid IANA timezone", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    expect(() =>
+      updateSettings(store, "chat-1", { timezone: "Not/AZone" }),
+    ).toThrow(InvalidSettingsError);
+    expect(() => updateSettings(store, "chat-1", { timezone: "" })).toThrow(
+      InvalidSettingsError,
+    );
+  });
+
+  test("rejects N < 1 or non-integer N", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    for (const bad of [0, -1, 1.5, Number.NaN]) {
+      expect(() =>
+        updateSettings(store, "chat-1", { graceTokenN: bad }),
+      ).toThrow(InvalidSettingsError);
+    }
+  });
+
+  test("throws ChatNotFoundError for unknown chat", async () => {
+    const store = await freshStore();
+    expect(() =>
+      updateSettings(store, "ghost", { graceTokenN: 4 }),
+    ).toThrow(ChatNotFoundError);
   });
 });
