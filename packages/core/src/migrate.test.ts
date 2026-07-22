@@ -197,3 +197,88 @@ describe("T10.3 — days migration", () => {
     }).toThrow();
   });
 });
+
+describe("T10.4 — check_ins migration", () => {
+  const { freshStore } = useMigratedStore();
+
+  async function seedDay(store: Store): Promise<void> {
+    store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
+    store.db
+      .query("INSERT INTO days (chat_id, day_key) VALUES (?, ?)")
+      .run("chat-1", "2026-07-21");
+  }
+
+  test("creates check_ins table", async () => {
+    const store = await freshStore();
+    const row = store.db
+      .query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'check_ins'",
+      )
+      .get() as { name: string } | null;
+    expect(row?.name).toBe("check_ins");
+  });
+
+  test("stores sober|minor_slip|major_slip with token-spend flag", async () => {
+    const store = await freshStore();
+    await seedDay(store);
+
+    store.db
+      .query(
+        "INSERT INTO check_ins (chat_id, member_id, day_key, status, spent_grace_token) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run("chat-1", "member-1", "2026-07-21", "minor_slip", 1);
+
+    const row = store.db
+      .query(
+        "SELECT status, spent_grace_token FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?",
+      )
+      .get("chat-1", "member-1", "2026-07-21") as {
+      status: string;
+      spent_grace_token: number;
+    };
+
+    expect(row.status).toBe("minor_slip");
+    expect(row.spent_grace_token).toBe(1);
+
+    store.db
+      .query(
+        "INSERT INTO check_ins (chat_id, member_id, day_key, status) VALUES (?, ?, ?, ?)",
+      )
+      .run("chat-1", "member-2", "2026-07-21", "sober");
+    store.db
+      .query(
+        "INSERT INTO check_ins (chat_id, member_id, day_key, status) VALUES (?, ?, ?, ?)",
+      )
+      .run("chat-1", "member-3", "2026-07-21", "major_slip");
+
+    const sober = store.db
+      .query(
+        "SELECT status, spent_grace_token FROM check_ins WHERE member_id = ?",
+      )
+      .get("member-2") as { status: string; spent_grace_token: number };
+    const major = store.db
+      .query(
+        "SELECT status, spent_grace_token FROM check_ins WHERE member_id = ?",
+      )
+      .get("member-3") as { status: string; spent_grace_token: number };
+
+    expect(sober.status).toBe("sober");
+    expect(sober.spent_grace_token).toBe(0);
+    expect(major.status).toBe("major_slip");
+    expect(major.spent_grace_token).toBe(0);
+  });
+
+  test("rejects missed/absent and other non-status values", async () => {
+    const store = await freshStore();
+    await seedDay(store);
+    for (const bad of ["missed", "absent", "soberish"]) {
+      expect(() => {
+        store.db
+          .query(
+            "INSERT INTO check_ins (chat_id, member_id, day_key, status) VALUES (?, ?, ?, ?)",
+          )
+          .run("chat-1", "member-1", "2026-07-21", bad);
+      }).toThrow();
+    }
+  });
+});

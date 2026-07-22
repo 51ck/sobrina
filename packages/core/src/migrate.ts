@@ -86,6 +86,27 @@ CREATE TABLE IF NOT EXISTS days (
 `);
     },
   },
+  {
+    // T10.4 — check_ins (chat, member, Day key, status, token-spend flag).
+    // Statuses: sober | minor_slip | major_slip only (CONTEXT.md Check-in).
+    // See tech/core-tasks.md T10.4, spec/stats.md.
+    id: "005",
+    up(db) {
+      db.exec(`
+CREATE TABLE IF NOT EXISTS check_ins (
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  member_id TEXT NOT NULL,
+  day_key TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('sober', 'minor_slip', 'major_slip')),
+  spent_grace_token INTEGER NOT NULL DEFAULT 0 CHECK (spent_grace_token IN (0, 1)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (chat_id, member_id, day_key),
+  FOREIGN KEY (chat_id, day_key) REFERENCES days(chat_id, day_key) ON DELETE CASCADE
+);
+`);
+    },
+  },
 ];
 
 const MIGRATIONS_TABLE = `
