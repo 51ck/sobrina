@@ -28,4 +28,8 @@ export {
   type ClockTime,
 } from "./settings.ts";
 
-export { joinChecklist, type ChecklistMembership } from "./checklist.ts";
+export {
+  joinChecklist,
+  leaveChecklist,
+  type ChecklistMembership,
+} from "./checklist.ts";

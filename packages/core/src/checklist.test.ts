@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { joinChecklist } from "./checklist.ts";
+import { joinChecklist, leaveChecklist } from "./checklist.ts";
 import { migrate } from "./migrate.ts";
 import { openStore, type Store } from "./store.ts";
 
@@ -64,5 +64,60 @@ describe("T12.1 — joinChecklist", () => {
     const store = await freshStore();
     expect(() => joinChecklist(store, "  ", "member-1")).toThrow();
     expect(() => joinChecklist(store, "chat-1", "  ")).toThrow();
+  });
+
+  test("rejoining after leave resets joinedAt and keeps one row", async () => {
+    const store = await freshStore();
+    const first = joinChecklist(store, "chat-1", "member-1");
+    leaveChecklist(store, "chat-1", "member-1");
+    const rejoined = joinChecklist(store, "chat-1", "member-1");
+
+    expect(rejoined.joinedAt >= first.joinedAt).toBe(true);
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM checklist_members WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { n: number };
+    expect(rows.n).toBe(1);
+  });
+});
+
+describe("T12.2 — leaveChecklist", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("marks an active member as left", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    leaveChecklist(store, "chat-1", "member-1");
+
+    const row = store.db
+      .query(
+        "SELECT left_at FROM checklist_members WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { left_at: string | null };
+    expect(row.left_at).toBeTruthy();
+  });
+
+  test("leaving when absent is a safe no-op (no throw, no row created)", async () => {
+    const store = await freshStore();
+    expect(() => leaveChecklist(store, "chat-1", "member-1")).not.toThrow();
+
+    const rows = store.db
+      .query("SELECT COUNT(*) AS n FROM checklist_members WHERE chat_id = ?")
+      .get("chat-1") as { n: number };
+    expect(rows.n).toBe(0);
+  });
+
+  test("leaving an already-left member is a safe no-op", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    leaveChecklist(store, "chat-1", "member-1");
+    expect(() => leaveChecklist(store, "chat-1", "member-1")).not.toThrow();
+  });
+
+  test("rejects blank chatId or memberId", async () => {
+    const store = await freshStore();
+    expect(() => leaveChecklist(store, "  ", "member-1")).toThrow();
+    expect(() => leaveChecklist(store, "chat-1", "  ")).toThrow();
   });
 });

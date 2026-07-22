@@ -100,3 +100,27 @@ export function joinChecklist(
   // Just wrote it active — present by construction.
   return toMembership(readActiveRow(store, chat, member) as ChecklistRow);
 }
+
+/**
+ * Remove a member from the Checklist (T12.2). Sets `left_at`; the row is
+ * kept (join history), and {@link joinChecklist} can later reset it.
+ *
+ * Safe no-op when the member is absent or already left (T12.5 — chosen
+ * over throwing, since "leave" from a state that already satisfies the
+ * caller's intent should not be an error).
+ */
+export function leaveChecklist(
+  store: Store,
+  chatId: string,
+  memberId: string,
+): void {
+  const chat = requireChatId(chatId);
+  const member = requireMemberId(memberId);
+
+  store.db
+    .query(
+      `UPDATE checklist_members SET left_at = datetime('now')
+       WHERE chat_id = ? AND member_id = ? AND left_at IS NULL`,
+    )
+    .run(chat, member);
+}
