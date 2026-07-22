@@ -51,6 +51,22 @@ CREATE TABLE IF NOT EXISTS chat_settings (
 `);
     },
   },
+  {
+    // T10.2 — Checklist membership (chat + member). See tech/core-tasks.md T10.2,
+    // spec/checklist.md, CONTEXT.md Checklist.
+    id: "003",
+    up(db) {
+      db.exec(`
+CREATE TABLE IF NOT EXISTS checklist_members (
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  member_id TEXT NOT NULL,
+  joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+  left_at TEXT,
+  PRIMARY KEY (chat_id, member_id)
+);
+`);
+    },
+  },
 ];
 
 const MIGRATIONS_TABLE = `
