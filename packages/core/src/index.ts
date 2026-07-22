@@ -62,6 +62,7 @@ export {
 
 export {
   recordCheckIn,
+  joinAndRecordCheckIn,
   NotOnChecklistError,
   DayClosedError,
   type CheckIn,

@@ -1,7 +1,8 @@
 /**
  * Record Check-in verb (T14.1 sober path + T14.2 slip path, both on an
- * open Day). See tech/core-tasks.md T14, spec/daily-rhythm.md (Check-in
- * anytime), spec/stats.md (status), spec/checklist.md (join + record),
+ * open Day) plus the T14.3 join-then-record composition. See
+ * tech/core-tasks.md T14, spec/daily-rhythm.md (Check-in anytime),
+ * spec/stats.md (status), spec/checklist.md (join + record),
  * spec/agent.md (Record Check-in capability), CONTEXT.md (Check-in).
  *
  * A Check-in is one member's stored status for one Day: `sober` |
@@ -26,6 +27,19 @@
  *   {@link DayClosedError} — an early, narrow slice of T14.4's full
  *   closed-Day policy (late corrections stay T17's job). Applies to both
  *   `sober` and `slip` intents.
+ * - **Non-member Check-in (T14.3):** {@link joinAndRecordCheckIn} is a
+ *   thin, separately-named composition of {@link joinChecklist} (T12.1,
+ *   idempotent) then {@link recordCheckIn} — ticket T14.3 Option A. Kept
+ *   as its own verb (not a `{ joinIfNeeded }` flag folded into
+ *   `recordCheckIn`, Option B) so every existing `recordCheckIn` call
+ *   site that relies on strict membership (`NotOnChecklistError` above)
+ *   keeps that behavior unchanged; callers who want "button or
+ *   conversational Check-in = join + record" (spec/checklist.md) opt in
+ *   by calling the composed verb instead. `joinChecklist` and
+ *   `recordCheckIn` each run as their own atomic statement/transaction —
+ *   no single transaction spans both — which is fine for a single
+ *   in-process call and mirrors how other durable verbs in this package
+ *   are composed from smaller idempotent verbs.
  * - **Grace Token earn (sober only):** after a sober write, calls
  *   {@link maybeEarnGraceToken} with `currentStreak = 0` as a documented
  *   interim (T15's implementation note, tech/core-tasks.md — the real
@@ -66,7 +80,7 @@
  *   `Database.transaction` supports nesting).
  */
 import type { Store } from "./store.ts";
-import { isOnChecklist } from "./checklist.ts";
+import { isOnChecklist, joinChecklist } from "./checklist.ts";
 import { ensureOpenDay, type Day, type DayKey } from "./day.ts";
 import { maybeEarnGraceToken, refundGraceToken, resolveSlip, type SlipResolution } from "./grace.ts";
 import { getSettings } from "./settings.ts";
@@ -290,4 +304,26 @@ export function recordCheckIn(
   }
 
   return checkIn;
+}
+
+/**
+ * Non-member Check-in (T14.3): {@link joinChecklist} then
+ * {@link recordCheckIn} — spec/checklist.md "button or conversational
+ * Check-in = join + record if not already on the list." See module doc
+ * "Non-member Check-in (T14.3)" for why this is a separate verb (Option
+ * A) rather than a flag on `recordCheckIn`.
+ *
+ * Already-member calls behave exactly like calling {@link recordCheckIn}
+ * directly — `joinChecklist` is a no-op for an already-active member.
+ * Works for both `sober` and `slip` intents (passed straight through).
+ */
+export function joinAndRecordCheckIn(
+  store: Store,
+  chatId: string,
+  memberId: string,
+  dayKey: DayKey,
+  intent: CheckInIntent,
+): CheckIn {
+  joinChecklist(store, chatId, memberId);
+  return recordCheckIn(store, chatId, memberId, dayKey, intent);
 }

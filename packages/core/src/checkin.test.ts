@@ -2,8 +2,13 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { joinChecklist, leaveChecklist } from "./checklist.ts";
-import { DayClosedError, NotOnChecklistError, recordCheckIn } from "./checkin.ts";
+import { isOnChecklist, joinChecklist, leaveChecklist } from "./checklist.ts";
+import {
+  DayClosedError,
+  NotOnChecklistError,
+  joinAndRecordCheckIn,
+  recordCheckIn,
+} from "./checkin.ts";
 import { closeDay, ensureOpenDay } from "./day.ts";
 import { grantGraceToken, hasGraceToken } from "./grace.ts";
 import { migrate } from "./migrate.ts";
@@ -349,5 +354,103 @@ describe("T14.2 — recordCheckIn (slip, via Grace Token rules)", () => {
       .get() as { n: number };
     expect(rows.n).toBe(0);
     expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+  });
+});
+
+describe("T14.3 — joinAndRecordCheckIn (non-member joins then records)", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("non-member sober Check-in ends on the Checklist with a Check-in row", async () => {
+    const store = await freshStore();
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+
+    const checkIn = joinAndRecordCheckIn(
+      store,
+      "chat-1",
+      "member-1",
+      "2026-07-22",
+      "sober",
+    );
+
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
+    expect(checkIn.status).toBe("sober");
+    expect(checkIn.dayKey).toBe("2026-07-22");
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?",
+      )
+      .get("chat-1", "member-1", "2026-07-22") as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("non-member slip Check-in ends on the Checklist with a Check-in row", async () => {
+    const store = await freshStore();
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+
+    const checkIn = joinAndRecordCheckIn(
+      store,
+      "chat-1",
+      "member-1",
+      "2026-07-22",
+      "slip",
+    );
+
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
+    expect(checkIn.status).toBe("major_slip");
+    expect(checkIn.spentGraceToken).toBe(false);
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?",
+      )
+      .get("chat-1", "member-1", "2026-07-22") as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("already-member Check-in behaves exactly like recordCheckIn (no extra join side effect)", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+
+    const viaDirect = recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "sober");
+    const membershipRow = store.db
+      .query(
+        "SELECT joined_at FROM checklist_members WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { joined_at: string };
+
+    const viaJoinAndRecord = joinAndRecordCheckIn(
+      store,
+      "chat-1",
+      "member-1",
+      "2026-07-23",
+      "sober",
+    );
+    const membershipRowAfter = store.db
+      .query(
+        "SELECT joined_at FROM checklist_members WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { joined_at: string };
+
+    expect(viaDirect.status).toBe("sober");
+    expect(viaJoinAndRecord.status).toBe("sober");
+    // joinChecklist is a no-op for an already-active member — joinedAt unchanged.
+    expect(membershipRowAfter.joined_at).toBe(membershipRow.joined_at);
+  });
+
+  test("throws DayClosedError for a non-member joining onto an already-closed Day (join happens, write rejected)", async () => {
+    const store = await freshStore();
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    closeDay(store, "chat-1", "2026-07-22");
+
+    expect(() =>
+      joinAndRecordCheckIn(store, "chat-1", "member-1", "2026-07-22", "sober"),
+    ).toThrow(DayClosedError);
+    // Join still lands — closed-Day rejection is recordCheckIn's write-side
+    // check, not a reason to withhold Checklist membership.
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
+    const rows = store.db
+      .query("SELECT COUNT(*) AS n FROM check_ins")
+      .get() as { n: number };
+    expect(rows.n).toBe(0);
   });
 });
