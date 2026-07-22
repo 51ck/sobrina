@@ -14,3 +14,12 @@ export {
 } from "./store.ts";
 
 export { migrate, MIGRATIONS, type Migration } from "./migrate.ts";
+
+export {
+  getOrCreateChat,
+  getSettings,
+  ChatNotFoundError,
+  DEFAULT_TIMEZONE,
+  DEFAULT_GRACE_TOKEN_N,
+  type ChatSettings,
+} from "./settings.ts";
