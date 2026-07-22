@@ -3,9 +3,18 @@
  * spec/daily-rhythm.md Settings table, CONTEXT.md (Reminder, Deadline,
  * Grace Token N).
  *
- * Defaults on create (migration + verbs): timezone `UTC`, graceTokenN `3`,
- * reminder/deadline times unset (`null`). Time/TZ string representation
- * locked in T11.3.
+ * ## Representation (T11.3)
+ * - `reminderTime` / `deadlineTime`: `"HH:MM"` 24-hour wall clock in the
+ *   chat `timezone` (zero-padded; e.g. `"09:00"`, `"21:30"`), or `null`
+ *   when unset (no Reminder/Deadline scheduled yet). Not an ISO instant.
+ * - `timezone`: IANA name (e.g. `"Europe/Moscow"`, `"UTC"`). Validated via
+ *   `Intl.DateTimeFormat({ timeZone })`.
+ * - `graceTokenN`: integer ≥ 1 — sober Streak length to earn Grace Token.
+ *
+ * ## Defaults on create (T11.3)
+ * - `timezone` = {@link DEFAULT_TIMEZONE} (`"UTC"`)
+ * - `graceTokenN` = {@link DEFAULT_GRACE_TOKEN_N} (`3`, CONTEXT.md / daily-rhythm)
+ * - `reminderTime` / `deadlineTime` = `null`
  *
  * No Telegram admin checks here (tech/core-tasks.md T11 Out of scope).
  */
@@ -153,8 +162,10 @@ export function getOrCreateChat(store: Store, chatId: string): ChatSettings {
   const run = store.db.transaction(() => {
     store.db.query("INSERT OR IGNORE INTO chats (id) VALUES (?)").run(id);
     store.db
-      .query("INSERT OR IGNORE INTO chat_settings (chat_id) VALUES (?)")
-      .run(id);
+      .query(
+        "INSERT OR IGNORE INTO chat_settings (chat_id, timezone, grace_token_n) VALUES (?, ?, ?)",
+      )
+      .run(id, DEFAULT_TIMEZONE, DEFAULT_GRACE_TOKEN_N);
   });
   run();
   // Present immediately after the transaction above — non-null by construction.

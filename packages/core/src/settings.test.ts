@@ -185,3 +185,33 @@ describe("T11.2 — updateSettings", () => {
     ).toThrow(ChatNotFoundError);
   });
 });
+
+describe("T11.3 — defaults + representation", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("DEFAULT_GRACE_TOKEN_N is 3 (CONTEXT.md / daily-rhythm)", () => {
+    expect(DEFAULT_GRACE_TOKEN_N).toBe(3);
+  });
+
+  test("new chat gets N=3, UTC, null times from verb defaults", async () => {
+    const store = await freshStore();
+    const settings = getOrCreateChat(store, "chat-defaults");
+    expect(settings.graceTokenN).toBe(3);
+    expect(settings.timezone).toBe("UTC");
+    expect(settings.reminderTime).toBeNull();
+    expect(settings.deadlineTime).toBeNull();
+  });
+
+  test("accepts zero-padded HH:MM local times and IANA timezone", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    const updated = updateSettings(store, "chat-1", {
+      reminderTime: "00:00",
+      deadlineTime: "23:59",
+      timezone: "Asia/Tokyo",
+    });
+    expect(updated.reminderTime).toBe("00:00");
+    expect(updated.deadlineTime).toBe("23:59");
+    expect(updated.timezone).toBe("Asia/Tokyo");
+  });
+});
