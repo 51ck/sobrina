@@ -5,10 +5,56 @@
  *
  * This module owns identifying which active Checklist members are
  * "silent" for a Day — i.e. have no {@link CheckIn} row at all for that
- * `(chatId, dayKey)` (T16.1) — and writing each silent member's
- * auto-slip Check-in via Grace Token rules (T16.2). Closing the Day
- * (T16.3) is a later slice; {@link autoSlipSilentMembers} never calls
- * {@link closeDay}.
+ * `(chatId, dayKey)` (T16.1) — writing each silent member's auto-slip
+ * Check-in via Grace Token rules (T16.2), and composing both into the
+ * full Deadline verb that also closes the Day (T16.3) via {@link
+ * closeDay}.
+ *
+ * ## T16.3 — closeDayAtDeadline
+ *
+ * {@link closeDayAtDeadline} is the theme verb: auto-slip, then close.
+ * It does **not** produce a Day Summary — that is a separate product
+ * step (spec/daily-rhythm.md Deadline step 2, "Post Day Summary") owned
+ * by T23 (fact bundle) and the agent layer, not this verb layer. This
+ * module has no Summary-shaped return value and never will; callers
+ * that need Summary facts call T23's `daySummaryFacts` separately once
+ * it exists.
+ *
+ * **Order:** {@link autoSlipSilentMembers} (T16.2) runs first, then
+ * {@link ensureOpenDay} (T13.2), then {@link closeDay} (T13.3). The
+ * `ensureOpenDay` step exists because an **empty Checklist** makes
+ * `autoSlipSilentMembers` a pure no-op that creates no Day row (its own
+ * module doc / T16.2 test) — without it, `closeDay` would throw
+ * `DayNotFoundError` (day.ts) on a Day that legitimately has zero silent
+ * members.
+ * Calling `ensureOpenDay` after `autoSlipSilentMembers` is safe either
+ * way: it is idempotent and never reopens an already-closed Day, so it
+ * is a no-op both when `autoSlipSilentMembers` already opened the Day
+ * via its first `recordCheckIn` call, and when the Day was already
+ * closed. Net effect: **Deadline always leaves a closed Day row for
+ * `dayKey`**, even when the Checklist is empty.
+ *
+ * **Already-closed Day:** not special-cased — behavior falls out of the
+ * composed verbs' own semantics (documented here rather than adding a
+ * redundant guard):
+ * - No silent members left to slip (the normal case — a prior
+ *   `closeDayAtDeadline` or `autoSlipSilentMembers` call already slipped
+ *   everyone, or the Checklist is empty) → `autoSlipSilentMembers`
+ *   no-ops, `ensureOpenDay` no-ops, `closeDay` no-ops (T13.3
+ *   idempotent) — the whole call is a safe idempotent re-run.
+ * - A genuinely silent member somehow still exists against an
+ *   already-closed Day (should not happen in normal Deadline-once-per-
+ *   Day usage) → `autoSlipSilentMembers` throws `DayClosedError`
+ *   (checkin.ts, via `recordCheckIn`, same as any other closed-Day write
+ *   attempt) — this module does not swallow that; callers see the same
+ *   reject {@link recordCheckIn} already documents for closed-Day
+ *   writes.
+ *
+ * **Validation:** no separate blank-arg guard in {@link
+ * closeDayAtDeadline} itself — `autoSlipSilentMembers` already rejects
+ * blank `chatId` / `dayKey` before anything else runs, mirroring how
+ * {@link joinAndRecordCheckIn} (checkin.ts) leans on the verb it calls
+ * first rather than re-validating.
  *
  * ## T16.2 — auto-slip write path
  *
@@ -50,7 +96,7 @@
 import type { Store } from "./store.ts";
 import { listChecklist } from "./checklist.ts";
 import { recordCheckIn, type CheckIn } from "./checkin.ts";
-import type { DayKey } from "./day.ts";
+import { closeDay, ensureOpenDay, type Day, type DayKey } from "./day.ts";
 
 function requireChatId(chatId: string): string {
   const trimmed = chatId.trim();
@@ -117,9 +163,10 @@ export function listSilentChecklistMembers(
  * `dayKey` (T16.2), via Grace Token rules — see module doc "T16.2 —
  * auto-slip write path" for the composition and transaction strategy.
  *
- * Does **not** close the Day (T16.3 is a later slice) and does not
- * touch members who already have a Check-in row for this Day (T16.1
- * already excludes them). Empty silent list → no-op, returns `[]`.
+ * Does **not** close the Day itself — that is {@link closeDayAtDeadline}
+ * (T16.3) — and does not touch members who already have a Check-in row
+ * for this Day (T16.1 already excludes them). Empty silent list → no-op,
+ * returns `[]`.
  *
  * Returns the written {@link CheckIn} rows in the same order as {@link
  * listSilentChecklistMembers} (oldest Checklist join first).
@@ -135,4 +182,38 @@ export function autoSlipSilentMembers(
   return listSilentChecklistMembers(store, chat, key).map((memberId) =>
     recordCheckIn(store, chat, memberId, key, "slip"),
   );
+}
+
+/**
+ * Result of {@link closeDayAtDeadline} — the auto-slip Check-ins written
+ * (T16.2) plus the resulting closed {@link Day} row (T13.3). Kept small
+ * on purpose: **no Summary fields** — Day Summary facts are T23's
+ * `daySummaryFacts`, called separately by the agent layer, never bundled
+ * into this verb's return (module doc "T16.3 — closeDayAtDeadline").
+ */
+export type CloseDayAtDeadlineResult = {
+  readonly checkIns: CheckIn[];
+  readonly day: Day;
+};
+
+/**
+ * The Deadline theme verb (T16.3): auto-slip every silent Checklist
+ * member (T16.2), then close the Day (T13.3) — see module doc "T16.3 —
+ * closeDayAtDeadline" for order, the empty-Checklist safety argument,
+ * already-closed-Day behavior, and why this never returns Summary data.
+ *
+ * Safe to call on an empty Checklist (closes the Day with `checkIns:
+ * []`) and safe to re-run once everyone silent has already been
+ * auto-slipped (idempotent no-op that still returns the closed Day).
+ */
+export function closeDayAtDeadline(
+  store: Store,
+  chatId: string,
+  dayKey: DayKey,
+): CloseDayAtDeadlineResult {
+  const checkIns = autoSlipSilentMembers(store, chatId, dayKey);
+  ensureOpenDay(store, chatId, dayKey);
+  const day = closeDay(store, chatId, dayKey);
+
+  return { checkIns, day };
 }

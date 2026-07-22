@@ -73,4 +73,6 @@ export {
 export {
   listSilentChecklistMembers,
   autoSlipSilentMembers,
+  closeDayAtDeadline,
+  type CloseDayAtDeadlineResult,
 } from "./deadline.ts";

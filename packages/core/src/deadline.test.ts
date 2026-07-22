@@ -5,7 +5,11 @@ import { join } from "node:path";
 import { isOnChecklist, joinChecklist, leaveChecklist } from "./checklist.ts";
 import { recordCheckIn } from "./checkin.ts";
 import { closeDay, ensureOpenDay } from "./day.ts";
-import { autoSlipSilentMembers, listSilentChecklistMembers } from "./deadline.ts";
+import {
+  autoSlipSilentMembers,
+  closeDayAtDeadline,
+  listSilentChecklistMembers,
+} from "./deadline.ts";
 import { grantGraceToken, hasGraceToken } from "./grace.ts";
 import { migrate } from "./migrate.ts";
 import { openStore, type Store } from "./store.ts";
@@ -290,5 +294,118 @@ describe("T16.2 — autoSlipSilentMembers", () => {
       .query("SELECT COUNT(*) AS n FROM check_ins WHERE chat_id = ?")
       .get("chat-2") as { n: number };
     expect(chat2Rows.n).toBe(0);
+  });
+});
+
+describe("T16.3 — closeDayAtDeadline", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("empty Checklist → safe: no Check-ins written, Day still closed", async () => {
+    const store = await freshStore();
+
+    const result = closeDayAtDeadline(store, "chat-1", "2024-01-01");
+
+    expect(result.checkIns).toEqual([]);
+    expect(result.day.status).toBe("closed");
+    expect(result.day.chatId).toBe("chat-1");
+    expect(result.day.dayKey).toBe("2024-01-01");
+    const day = store.db
+      .query("SELECT status FROM days WHERE chat_id = ? AND day_key = ?")
+      .get("chat-1", "2024-01-01") as { status: string };
+    expect(day.status).toBe("closed");
+  });
+
+  test("after auto-slips, every silent member is slipped and the Day is closed", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    grantGraceToken(store, "chat-1", "member-1");
+    joinChecklist(store, "chat-1", "member-2");
+
+    const result = closeDayAtDeadline(store, "chat-1", "2024-01-01");
+
+    expect(result.checkIns.map((c) => c.memberId)).toEqual([
+      "member-1",
+      "member-2",
+    ]);
+    expect(result.checkIns[0]?.status).toBe("minor_slip");
+    expect(result.checkIns[1]?.status).toBe("major_slip");
+    expect(result.day.status).toBe("closed");
+  });
+
+  test("already-checked-in members are untouched through the composed verb", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    joinChecklist(store, "chat-1", "member-2");
+    const before = recordCheckIn(
+      store,
+      "chat-1",
+      "member-2",
+      "2024-01-01",
+      "sober",
+    );
+
+    const result = closeDayAtDeadline(store, "chat-1", "2024-01-01");
+
+    expect(result.checkIns.map((c) => c.memberId)).toEqual(["member-1"]);
+    const after = store.db
+      .query(
+        `SELECT status, spent_grace_token AS spentGraceToken, created_at AS createdAt, updated_at AS updatedAt
+         FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?`,
+      )
+      .get("chat-1", "member-2", "2024-01-01") as {
+      status: string;
+      spentGraceToken: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+    expect(after.status).toBe("sober");
+    expect(after.spentGraceToken).toBe(0);
+    expect(after.createdAt).toBe(before.createdAt);
+    expect(after.updatedAt).toBe(before.updatedAt);
+    expect(result.day.status).toBe("closed");
+  });
+
+  test("idempotent re-run: everyone already slipped → no new writes, Day still closed", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+
+    const first = closeDayAtDeadline(store, "chat-1", "2024-01-01");
+    expect(first.checkIns).toHaveLength(1);
+
+    const second = closeDayAtDeadline(store, "chat-1", "2024-01-01");
+
+    expect(second.checkIns).toEqual([]);
+    expect(second.day.status).toBe("closed");
+    expect(second.day.closedAt).toBe(first.day.closedAt);
+    const rows = store.db
+      .query("SELECT COUNT(*) AS n FROM check_ins")
+      .get() as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("Day never opened before Deadline is still created and left closed", async () => {
+    const store = await freshStore();
+
+    closeDayAtDeadline(store, "chat-1", "2099-06-15");
+
+    const day = store.db
+      .query("SELECT status FROM days WHERE chat_id = ? AND day_key = ?")
+      .get("chat-1", "2099-06-15") as { status: string } | null;
+    expect(day?.status).toBe("closed");
+  });
+
+  test("a genuinely silent member against an already-closed Day rejects like autoSlipSilentMembers", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    ensureOpenDay(store, "chat-1", "2024-01-01");
+    closeDay(store, "chat-1", "2024-01-01");
+
+    expect(() => closeDayAtDeadline(store, "chat-1", "2024-01-01")).toThrow();
+  });
+
+  test("rejects blank chatId or dayKey", async () => {
+    const store = await freshStore();
+    expect(() => closeDayAtDeadline(store, "  ", "2024-01-01")).toThrow();
+    expect(() => closeDayAtDeadline(store, "chat-1", "  ")).toThrow();
   });
 });
