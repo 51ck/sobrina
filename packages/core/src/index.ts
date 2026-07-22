@@ -37,3 +37,15 @@ export {
   type ChecklistMembership,
   type ChecklistMember,
 } from "./checklist.ts";
+
+export {
+  computeDayKey,
+  ensureOpenDay,
+  getDay,
+  closeDay,
+  DayNotFoundError,
+  type Day,
+  type DayKey,
+  type DayKeySettings,
+  type DayStatus,
+} from "./day.ts";

@@ -109,10 +109,10 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 **Tasks:**
 
-- [ ] **T13.1** Pure helper: Day key from chat TZ + Reminder cycle (evening date rules per ADR 0002)
-- [ ] **T13.2** `ensureOpenDay(chatId, dayKey)` / get Day state (open vs closed)
-- [ ] **T13.3** `closeDay(chatId, dayKey)` — state transition only (no auto-slip yet)
-- [ ] **T13.4** Tests: same-calendar Deadline; overnight Deadline keeps evening Day key; close is idempotent or well-defined
+- [x] **T13.1** Pure helper: Day key from chat TZ + Reminder cycle (evening date rules per ADR 0002)
+- [x] **T13.2** `ensureOpenDay(chatId, dayKey)` / get Day state (open vs closed)
+- [x] **T13.3** `closeDay(chatId, dayKey)` — state transition only (no auto-slip yet)
+- [x] **T13.4** Tests: same-calendar Deadline; overnight Deadline keeps evening Day key; close is idempotent or well-defined
 
 ---
 
