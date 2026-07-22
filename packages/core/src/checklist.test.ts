@@ -201,3 +201,66 @@ describe("T12.4 — listChecklist / isOnChecklist", () => {
     expect(isOnChecklist(store, "chat-1", "member-1")).toBe(false);
   });
 });
+
+describe("T12.5 — membership matrix (join/leave/remove, safety)", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("full lifecycle: join → visible → leave → hidden → rejoin → visible", async () => {
+    const store = await freshStore();
+
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(false);
+    joinChecklist(store, "chat-1", "member-1");
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
+    expect(listChecklist(store, "chat-1").map((m) => m.memberId)).toEqual([
+      "member-1",
+    ]);
+
+    leaveChecklist(store, "chat-1", "member-1");
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(false);
+    expect(listChecklist(store, "chat-1")).toEqual([]);
+
+    joinChecklist(store, "chat-1", "member-1");
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(true);
+  });
+
+  test("double-join is safe: repeated joinChecklist never duplicates the row or errors", async () => {
+    const store = await freshStore();
+    for (let i = 0; i < 3; i++) {
+      expect(() => joinChecklist(store, "chat-1", "member-1")).not.toThrow();
+    }
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM checklist_members WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("leave/remove when absent is a safe no-op — chosen behavior, documented in checklist.ts", async () => {
+    const store = await freshStore();
+    expect(() => leaveChecklist(store, "chat-1", "ghost")).not.toThrow();
+    expect(() => removeFromChecklist(store, "chat-1", "ghost")).not.toThrow();
+    expect(isOnChecklist(store, "chat-1", "ghost")).toBe(false);
+  });
+
+  test("admin remove and self leave are interchangeable on an active member", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    joinChecklist(store, "chat-1", "member-2");
+
+    removeFromChecklist(store, "chat-1", "member-1");
+    leaveChecklist(store, "chat-1", "member-2");
+
+    expect(listChecklist(store, "chat-1")).toEqual([]);
+  });
+
+  test("membership in one chat does not affect another chat's Checklist", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    joinChecklist(store, "chat-2", "member-1");
+    leaveChecklist(store, "chat-1", "member-1");
+
+    expect(isOnChecklist(store, "chat-1", "member-1")).toBe(false);
+    expect(isOnChecklist(store, "chat-2", "member-1")).toBe(true);
+  });
+});

@@ -91,7 +91,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 - [x] **T12.2** `leaveChecklist(chatId, memberId)`
 - [x] **T12.3** `removeFromChecklist(chatId, memberId)` (admin path; same durable remove)
 - [x] **T12.4** `listChecklist(chatId)` / `isOnChecklist(...)`
-- [ ] **T12.5** Tests: join/leave/remove; double-join safe; leave when absent is safe no-op or clear error (pick one; document)
+- [x] **T12.5** Tests: join/leave/remove; double-join safe; leave when absent is safe no-op or clear error (pick one; document)
 
 ---
 
