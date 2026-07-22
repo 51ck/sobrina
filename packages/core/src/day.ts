@@ -50,7 +50,13 @@ export type DayKeySettings = Pick<
   "timezone" | "reminderTime" | "deadlineTime"
 >;
 
-function localDateAndClock(
+/**
+ * Local calendar date + wall clock for `instant` in `timezone` (used by
+ * {@link computeDayKey}). Exported as a generic calendar helper so other
+ * modules needing a local-time read (e.g. `latefix.ts`) can reuse it
+ * rather than re-implementing the same Intl call.
+ */
+export function localDateAndClock(
   timezone: string,
   instant: Date,
 ): { date: DayKey; clock: ClockTime } {
@@ -71,8 +77,13 @@ function localDateAndClock(
   };
 }
 
-/** Shift a `"YYYY-MM-DD"` key by `deltaDays` (pure calendar arithmetic, no TZ). */
-function shiftDayKey(dayKey: DayKey, deltaDays: number): DayKey {
+/**
+ * Shift a `"YYYY-MM-DD"` key by `deltaDays` (pure calendar arithmetic,
+ * no TZ). Exported as a generic calendar helper for reuse by other
+ * modules that need to walk Day keys by whole days (e.g. `latefix.ts`'s
+ * `nextReminderAfterDay`, which needs the following calendar date).
+ */
+export function shiftDayKey(dayKey: DayKey, deltaDays: number): DayKey {
   const [year, month, day] = dayKey.split("-").map(Number) as [
     number,
     number,
@@ -84,6 +95,56 @@ function shiftDayKey(dayKey: DayKey, deltaDays: number): DayKey {
   const m = String(shifted.getUTCMonth() + 1).padStart(2, "0");
   const d = String(shifted.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+/**
+ * Convert a local wall-clock `"HH:MM"` on calendar date `dayKey` in
+ * `timezone` into the UTC instant it denotes. Inverse of {@link
+ * localDateAndClock}, implemented the standard Intl-only way: guess the
+ * instant by treating the wall clock as UTC, read back its local
+ * date/clock in `timezone`, then correct the guess by the observed
+ * drift. Two correction passes are enough in practice (a timezone's UTC
+ * offset cannot itself shift by more than a small, bounded amount
+ * between the guess and the corrected instant — DST transitions
+ * included) at minute resolution — no sub-minute ambiguity handling for
+ * the rare double-wall-clock DST fold.
+ *
+ * Exported as a generic calendar helper alongside {@link
+ * localDateAndClock} / {@link shiftDayKey} so other modules that need a
+ * local-time-to-instant conversion (e.g. `latefix.ts`'s
+ * `nextReminderAfterDay`) can reuse it instead of re-implementing it.
+ */
+export function instantFromLocalClock(
+  timezone: string,
+  dayKey: DayKey,
+  clock: ClockTime,
+): Date {
+  const [year, month, day] = dayKey.split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  const [hour, minute] = clock.split(":").map(Number) as [number, number];
+  const targetUtcMillis = Date.UTC(year, month - 1, day, hour, minute);
+
+  let guess = targetUtcMillis;
+  for (let i = 0; i < 2; i++) {
+    const { date, clock: gotClock } = localDateAndClock(
+      timezone,
+      new Date(guess),
+    );
+    const [gy, gm, gd] = date.split("-").map(Number) as [
+      number,
+      number,
+      number,
+    ];
+    const [gh, gmin] = gotClock.split(":").map(Number) as [number, number];
+    const gotUtcMillis = Date.UTC(gy, gm - 1, gd, gh, gmin);
+    const diff = targetUtcMillis - gotUtcMillis;
+    if (diff === 0) break;
+    guess += diff;
+  }
+  return new Date(guess);
 }
 
 /**

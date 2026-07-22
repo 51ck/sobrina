@@ -76,3 +76,10 @@ export {
   closeDayAtDeadline,
   type CloseDayAtDeadlineResult,
 } from "./deadline.ts";
+
+export {
+  isLateFixAllowed,
+  nextReminderAfterDay,
+  LateFixFenceUnknownError,
+  type LateFixSettings,
+} from "./latefix.ts";
