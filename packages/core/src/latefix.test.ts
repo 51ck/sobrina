@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getCheckIn, NotOnChecklistError } from "./checkin.ts";
+import { getCheckIn, NotOnChecklistError, recordCheckIn } from "./checkin.ts";
 import { joinChecklist } from "./checklist.ts";
-import { closeDay, ensureOpenDay } from "./day.ts";
+import { closeDay, ensureOpenDay, getDay } from "./day.ts";
 import { closeDayAtDeadline } from "./deadline.ts";
 import { grantGraceToken, hasGraceToken } from "./grace.ts";
 import {
@@ -486,5 +486,91 @@ describe("T17.3 — reject after late-fix fence (correctCheckIn)", () => {
 
     expect(getCheckIn(store, "chat-1", "amy", "2026-07-22")).toEqual(before);
     expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+  });
+});
+
+/**
+ * T17.4 — theme close-out. T17.1–T17.3 above already cover fence
+ * helpers, correctCheckIn write/refund, and reject-after-fence depth
+ * (Standards pushed back on re-cloning that matrix in T17.3). This
+ * block only closes Done-when gaps at the product seams the board
+ * names: (1) `closeDayAtDeadline` auto-slip → late sober
+ * `correctCheckIn` refunds when the auto-slip spent a token, and the
+ * Day stays closed; (2) open Day ordinary Check-in still goes through
+ * T14 `recordCheckIn` (succeeds) while `correctCheckIn` is rejected —
+ * proving the late-fix verb is not the open-Day path. The
+ * "correction after next Reminder rejected, no mutation" cell is
+ * intentionally not re-walked here — T17.2's exact-at-fence + T17.3's
+ * well-after/overnight `correctCheckIn` rejects already lock it
+ * end-to-end (same skip pattern as T16.4's empty-Checklist cell).
+ */
+describe("T17.4 — late-fix close-out matrix", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("auto-slip (Deadline, token spent) → sober correctCheckIn refunds; Day stays closed", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    updateSettings(store, "chat-1", {
+      timezone: "UTC",
+      reminderTime: "09:00",
+      deadlineTime: "21:00",
+    });
+    joinChecklist(store, "chat-1", "amy");
+    grantGraceToken(store, "chat-1", "amy");
+
+    const { checkIns, day } = closeDayAtDeadline(store, "chat-1", "2026-07-22");
+    expect(day.status).toBe("closed");
+    expect(checkIns).toHaveLength(1);
+    expect(checkIns[0]?.status).toBe("minor_slip");
+    expect(checkIns[0]?.spentGraceToken).toBe(true);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+
+    const now = new Date("2026-07-22T22:00:00Z"); // after Deadline, before next Reminder
+    const corrected = correctCheckIn(
+      store,
+      "chat-1",
+      "amy",
+      "2026-07-22",
+      "sober",
+      now,
+    );
+
+    expect(corrected.status).toBe("sober");
+    expect(corrected.spentGraceToken).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(true);
+    expect(getCheckIn(store, "chat-1", "amy", "2026-07-22")?.status).toBe(
+      "sober",
+    );
+    // Late fix must not reopen the Day — ordinary open-Day writes stay T14.
+    expect(getDay(store, "chat-1", "2026-07-22")?.status).toBe("closed");
+  });
+
+  test("open Day: ordinary record still via T14 recordCheckIn; correctCheckIn rejected", async () => {
+    const store = await freshStore();
+    getOrCreateChat(store, "chat-1");
+    updateSettings(store, "chat-1", {
+      timezone: "UTC",
+      reminderTime: "09:00",
+      deadlineTime: "21:00",
+    });
+    joinChecklist(store, "chat-1", "amy");
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+
+    const now = new Date("2026-07-22T12:00:00Z");
+    const recorded = recordCheckIn(store, "chat-1", "amy", "2026-07-22", "sober");
+    expect(recorded.status).toBe("sober");
+    expect(getDay(store, "chat-1", "2026-07-22")?.status).toBe("open");
+
+    try {
+      correctCheckIn(store, "chat-1", "amy", "2026-07-22", "slip", now);
+      expect.unreachable("correctCheckIn should reject on an open Day");
+    } catch (err) {
+      expect(err).toBeInstanceOf(LateFixNotAllowedError);
+      expect((err as LateFixNotAllowedError).reason).toBe("day-open");
+    }
+
+    // Reject left the T14 row and Day status untouched.
+    expect(getCheckIn(store, "chat-1", "amy", "2026-07-22")).toEqual(recorded);
+    expect(getDay(store, "chat-1", "2026-07-22")?.status).toBe("open");
   });
 });
