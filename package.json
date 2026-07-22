@@ -1,11 +1,11 @@
 {
-  "name": "sobrina",
+  "name": "sobri",
   "private": true,
   "type": "module",
   "workspaces": ["packages/*"],
   "scripts": {
     "lint": "oxlint packages",
-    "typecheck": "bun run --filter '@sobrina/*' typecheck",
+    "typecheck": "bun run --filter '@sobri/*' typecheck",
     "boot": "bun packages/core/src/boot.ts",
     "prepare": "git config core.hooksPath .githooks"
   },

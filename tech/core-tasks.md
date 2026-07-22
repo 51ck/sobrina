@@ -1,6 +1,6 @@
 # Core — ticket board
 
-Board under the [in-repo ticket system](tickets.md). Phase 1 ledger + Session + scheduler in `@sobrina/core`. Spec: [roadmap.md](../spec/roadmap.md) Phase 1. Arch: [architecture.md](architecture.md). Glossary: [`CONTEXT.md`](../CONTEXT.md).
+Board under the [in-repo ticket system](tickets.md). Phase 1 ledger + Session + scheduler in `@sobri/core`. Spec: [roadmap.md](../spec/roadmap.md) Phase 1. Arch: [architecture.md](architecture.md). Glossary: [`CONTEXT.md`](../CONTEXT.md).
 
 IDs **T10–T25** (foundation T1–T6; cross-board uniqueness per [tickets.md](tickets.md)).
 
@@ -303,7 +303,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 **Tasks:**
 
-- [ ] **T22.1** Lock caption max length constant in `@sobrina/core` (document number next to constant)
+- [ ] **T22.1** Lock caption max length constant in `@sobri/core` (document number next to constant)
 - [ ] **T22.2** `askWithOptions` input/result types: options[], optional skip/reject, caption validation
 - [ ] **T22.3** Reminder default option labels constant: Красавчик / Оступился
 - [ ] **T22.4** Tests: over-long caption rejected; defaults exported
@@ -335,7 +335,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 **Problem:** Agent must call durable verbs through tools; narrative cannot bypass ledger.
 
-**Done when:** Mastra tools in `@sobrina/core` wrap record/correct Check-in, Checklist, settings read/update, full stats, Day resolution helper, askWithOptions, daySummaryFacts, Deadline/Reminder actions as appropriate; tools return verb results; smoke test that a tool invokes store (no live model required if Mastra allows mocked tool exec). Character prompt / MODEL_ID wiring left to agent board where needed.
+**Done when:** Mastra tools in `@sobri/core` wrap record/correct Check-in, Checklist, settings read/update, full stats, Day resolution helper, askWithOptions, daySummaryFacts, Deadline/Reminder actions as appropriate; tools return verb results; smoke test that a tool invokes store (no live model required if Mastra allows mocked tool exec). Character prompt / MODEL_ID wiring left to agent board where needed.
 
 **Depends on:** T11–T23 as applicable; foundation env for `MODEL_ID` optional for this theme’s smoke
 
@@ -345,7 +345,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 **Tasks:**
 
-- [ ] **T24.1** Tool module layout under `@sobrina/core` (register list)
+- [ ] **T24.1** Tool module layout under `@sobri/core` (register list)
 - [ ] **T24.2** Tools: Check-in record + correct; Checklist join/leave/remove
 - [ ] **T24.3** Tools: settings get/update; fullStats; day resolution
 - [ ] **T24.4** Tools: askWithOptions passthrough; daySummaryFacts

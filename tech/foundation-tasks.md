@@ -4,11 +4,11 @@ Board under the [in-repo ticket system](tickets.md). Phase 1 MVP scaffold before
 
 ## Why
 
-No application packages exist yet. Before Check-in verbs, Session hub, or Grammy can land, the repo needs a Bun workspace, shared TypeScript baseline, lint/typecheck gate, env naming, SQLite ownership in `@sobrina/core`, and a process that boots cleanly. This board is that scaffold only.
+No application packages exist yet. Before Check-in verbs, Session hub, or Grammy can land, the repo needs a Bun workspace, shared TypeScript baseline, lint/typecheck gate, env naming, SQLite ownership in `@sobri/core`, and a process that boots cleanly. This board is that scaffold only.
 
 ## Themes
 
-1. **Bun workspace monorepo** — root + `@sobrina/core` + `@sobrina/telegram` packages exist
+1. **Bun workspace monorepo** — root + `@sobri/core` + `@sobri/telegram` packages exist
 2. **Shared TypeScript baseline** — base tsconfig and package scripts typecheck
 3. **Lint and typecheck gate** — `bun run lint` / `bun run typecheck` from root; optional pre-commit
 4. **Env naming and config load** — documented names, example file, fail-fast load
@@ -21,7 +21,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Problem:** Without a workspace layout, later boards have nowhere safe to put core vs adapter code.
 
-**Done when:** `packages/core` and `packages/telegram` are Bun workspace packages named `@sobrina/core` and `@sobrina/telegram`; root can install with Bun; telegram may declare a dependency on core; no product domain logic yet.
+**Done when:** `packages/core` and `packages/telegram` are Bun workspace packages named `@sobri/core` and `@sobri/telegram`; root can install with Bun; telegram may declare a dependency on core; no product domain logic yet.
 
 **Depends on:** none
 
@@ -32,8 +32,8 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 **Tasks:**
 
 - [x] **T1.1** Root `package.json`: private workspaces `packages/*`, `"type": "module"`, placeholder root scripts
-- [x] **T1.2** `packages/core`: `@sobrina/core` package.json + minimal `src/index.ts` export stub
-- [x] **T1.3** `packages/telegram`: `@sobrina/telegram` package.json depending on `@sobrina/core` + minimal `src/index.ts` stub
+- [x] **T1.2** `packages/core`: `@sobri/core` package.json + minimal `src/index.ts` export stub
+- [x] **T1.3** `packages/telegram`: `@sobri/telegram` package.json depending on `@sobri/core` + minimal `src/index.ts` stub
 - [x] **T1.4** Root README status line: monorepo scaffold exists; point to `tech/` for architecture/tickets (no product rewrite)
 - [x] **T1.5** `bun install` succeeds on a clean checkout; `bun.lock` committed
 
@@ -85,7 +85,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Problem:** Boot and later boards need stable env **names** without committing secrets.
 
-**Done when:** `.env.example` lists Phase 1 foundation names; `@sobrina/core` (or thin shared config module in core) loads and validates required vars; missing required vars fail with a clear error; no secrets in git.
+**Done when:** `.env.example` lists Phase 1 foundation names; `@sobri/core` (or thin shared config module in core) loads and validates required vars; missing required vars fail with a clear error; no secrets in git.
 
 **Depends on:** T1
 
@@ -116,7 +116,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Problem:** Core must own persistence before ledger verbs exist; need a migration-ready shell, not domain tables yet.
 
-**Done when:** `@sobrina/core` opens SQLite at `DATABASE_PATH`, runs a versioned migration runner, applies a minimal schema_migrations (or equivalent) table, and exposes `openStore(path)` / `close` for boot. No Check-in/Day product tables yet.
+**Done when:** `@sobri/core` opens SQLite at `DATABASE_PATH`, runs a versioned migration runner, applies a minimal schema_migrations (or equivalent) table, and exposes `openStore(path)` / `close` for boot. No Check-in/Day product tables yet.
 
 **Depends on:** T1, T4
 
@@ -126,7 +126,7 @@ No application packages exist yet. Before Check-in verbs, Session hub, or Grammy
 
 **Tasks:**
 
-- [x] **T5.1** Choose SQLite access approach for Bun (document choice in a short code comment or `packages/core` note); add dependency on `@sobrina/core` only
+- [x] **T5.1** Choose SQLite access approach for Bun (document choice in a short code comment or `packages/core` note); add dependency on `@sobri/core` only
 - [x] **T5.2** `openStore(path)`: create parent dir if needed; open file; basic pragma hygiene (e.g. foreign_keys on) as appropriate; pair with `close`
 - [x] **T5.3** Migration runner skeleton on the store from `openStore`: ordered migrations list + applied-versions table
 - [x] **T5.4** Migration `001`: empty product schema placeholder + runner metadata only (or no-op product tables) — prove migrate-up works

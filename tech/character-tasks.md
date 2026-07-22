@@ -6,7 +6,7 @@ IDs **T70–T71** (foundation T1–T6, core T10–T25, telegram T30–T44, agent
 
 ## Why
 
-Grill locked: product/person **Sobri**; closed **Character** catalog (Pan / Artemis / Apollo / Hestia); one face per chat; admin-only; force-choose; peer foundation shared across faces; no kinship self-claim; no user-facing switch narration; admin custom title best-effort; Diary Character mark waits for Diary. Spec and package names still say Sobrina — this board locks idea docs then renames code.
+Grill locked: product/person **Sobri**; closed **Character** catalog (Pan / Artemis / Apollo / Hestia); one face per chat; admin-only; force-choose; peer foundation shared across faces; no kinship self-claim; no user-facing switch narration; admin custom title best-effort; Diary Character mark waits for Diary. Spec and package names said Sobrina — this board locked idea docs then renamed code.
 
 ## Themes
 
@@ -49,13 +49,15 @@ Grill locked: product/person **Sobri**; closed **Character** catalog (Pan / Arte
 
 **Out of scope:** GitHub org/repo rename; Telegram BotFather display-name ops; Character schema/UI (T25/T44); prompt prose (T61)
 
+**Rename exceptions (post-contract, grep-gate-safe):** target names locked as `Sobri` / `@sobri/core` / `@sobri/telegram` / root `sobri`, no runtime alias used (packages are `private`, workspace-only, never published). The grep gate targets *live* `@sobrina/*` package refs and Sobrina-as-product/-person usage — not every substring "Sobrina" ever written. **Exempt (not gate failures):** every "Sobrina" mention on **this board** (`character-tasks.md`, all of T70 + T71 — titles, Why, Problem, Done when, Themes, task lines, this note) — it narrates the rename/spec-lock itself; `tickets.md`'s board index entry "Sobrina→Sobri rename"; `CONTEXT.md`'s `_Avoid_: Sobrina as the agent person` glossary guidance. Outside those three files, no `Sobrina` / `@sobrina/*` should remain.
+
 **Tasks:**
 
-- [ ] **T71.1** Expand: document target names (`Sobri`, `@sobri/core`, `@sobri/telegram`); add dual-read or alias strategy so migrate batches stay green
-- [ ] **T71.2** Migrate package names + imports + root workspace scripts (batch; lint/typecheck green)
-- [ ] **T71.3** Migrate architecture, AGENTS, ticket boards, README, env docs strings Sobrina → Sobri / `@sobrina` → `@sobri`
-- [ ] **T71.4** Contract: remove aliases/old package names; grep gate no stale `@sobrina/` or Sobrina-as-product in owned trees
-- [ ] **T71.5** Smoke: clean install + lint + typecheck on renamed workspace
+- [x] **T71.1** Expand: document target names (`Sobri`, `@sobri/core`, `@sobri/telegram`); lock migration strategy (atomic batches, no runtime alias needed) so migrate batches stay green
+- [x] **T71.2** Migrate package names + imports + root workspace scripts (batch; lint/typecheck green)
+- [x] **T71.3** Migrate architecture, AGENTS, ticket boards, README, env docs strings Sobrina → Sobri / `@sobrina` → `@sobri`
+- [x] **T71.4** Contract: remove aliases/old package names; grep gate no stale `@sobrina/` or Sobrina-as-product in owned trees
+- [x] **T71.5** Smoke: clean install + lint + typecheck on renamed workspace
 
 ---
 

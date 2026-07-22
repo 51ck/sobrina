@@ -1,6 +1,6 @@
 # Telegram — ticket board
 
-Board under the [in-repo ticket system](tickets.md). Phase 1 group adapter in `@sobrina/telegram`. Spec: [telegram-ux.md](../spec/telegram-ux.md), [daily-rhythm.md](../spec/daily-rhythm.md), [checklist.md](../spec/checklist.md). Arch: [architecture.md](architecture.md) (adapter I/O only; channel tools call core verbs). Glossary: [`CONTEXT.md`](../CONTEXT.md).
+Board under the [in-repo ticket system](tickets.md). Phase 1 group adapter in `@sobri/telegram`. Spec: [telegram-ux.md](../spec/telegram-ux.md), [daily-rhythm.md](../spec/daily-rhythm.md), [checklist.md](../spec/checklist.md). Arch: [architecture.md](architecture.md) (adapter I/O only; channel tools call core verbs). Glossary: [`CONTEXT.md`](../CONTEXT.md).
 
 IDs **T30–T44** (foundation T1–T6, core T10–T25; cross-board uniqueness per [tickets.md](tickets.md)).
 
@@ -31,11 +31,11 @@ Core owns the ledger, Session hub, scheduler due-checks, and `askWithOptions` ty
 
 **Problem:** Without a running group bot entry, no Telegram MVP path is real.
 
-**Done when:** `@sobrina/telegram` starts with `TELEGRAM_BOT_TOKEN`, connects via Grammy, and can receive an update from a group (log or echo stub). Privacy Mode off called out in install notes (README or package note). No ledger writes yet.
+**Done when:** `@sobri/telegram` starts with `TELEGRAM_BOT_TOKEN`, connects via Grammy, and can receive an update from a group (log or echo stub). Privacy Mode off called out in install notes (README or package note). No ledger writes yet.
 
-**Depends on:** foundation T4 (env), T6 (boot patterns); package `@sobrina/telegram` from T1
+**Depends on:** foundation T4 (env), T6 (boot patterns); package `@sobri/telegram` from T1
 
-**Spec / arch links:** [spec/telegram-ux.md](../spec/telegram-ux.md) (Install), [architecture.md](architecture.md) (`@sobrina/telegram`)
+**Spec / arch links:** [spec/telegram-ux.md](../spec/telegram-ux.md) (Install), [architecture.md](architecture.md) (`@sobri/telegram`)
 
 **Out of scope:** DM-primary UX; webhook vs polling final ops choice beyond a working local default; character prompt
 
@@ -264,7 +264,7 @@ Core owns the ledger, Session hub, scheduler due-checks, and `askWithOptions` ty
 
 **Problem:** Core due-checks need a process tick so the adapter can deliver Reminder / Day Summary I/O.
 
-**Done when:** Bot process periodically calls **core tick** (core owns due-check + T16 + Session wake); telegram **only consumes returned intents** → T35 (Reminder) / T40 (Summary) I/O; **no second Deadline/Reminder rule engine** in the adapter; fake-clock or integration smoke documented. No Telegram I/O inside `@sobrina/core`.
+**Done when:** Bot process periodically calls **core tick** (core owns due-check + T16 + Session wake); telegram **only consumes returned intents** → T35 (Reminder) / T40 (Summary) I/O; **no second Deadline/Reminder rule engine** in the adapter; fake-clock or integration smoke documented. No Telegram I/O inside `@sobri/core`.
 
 **Depends on:** T35, T36, T40, core T21
 
@@ -316,8 +316,8 @@ Core owns the ledger, Session hub, scheduler due-checks, and `askWithOptions` ty
 
 **Tasks:**
 
-- [ ] **T43.1** Lock `/help` text (commands + “talk to Sobrina” pointer)
-- [ ] **T43.2** Progress/stats entry → Session + `fullStats` tool path (or stub “ask Sobrina” until agent board)
+- [ ] **T43.1** Lock `/help` text (commands + “talk to Sobri” pointer)
+- [ ] **T43.2** Progress/stats entry → Session + `fullStats` tool path (or stub “ask Sobri” until agent board)
 - [ ] **T43.3** Register commands with Bot API command menu
 
 ---

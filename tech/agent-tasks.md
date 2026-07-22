@@ -1,6 +1,6 @@
 # Agent — ticket board
 
-Board under the [in-repo ticket system](tickets.md). Phase 1 Sobrina person: Mastra agent, prompts, Session turns, tool-backed narration. Spec: [agent.md](../spec/agent.md), [character.md](../spec/character.md), [stats.md](../spec/stats.md), [session.md](../spec/session.md), [memory.md](../spec/memory.md) (Phase 2 depth). Arch: [architecture.md](architecture.md) (Mastra in `@sobrina/core`; durable verbs vs agent). Glossary: [`CONTEXT.md`](../CONTEXT.md).
+Board under the [in-repo ticket system](tickets.md). Phase 1 Sobri person: Mastra agent, prompts, Session turns, tool-backed narration. Spec: [agent.md](../spec/agent.md), [character.md](../spec/character.md), [stats.md](../spec/stats.md), [session.md](../spec/session.md), [memory.md](../spec/memory.md) (Phase 2 depth). Arch: [architecture.md](architecture.md) (Mastra in `@sobri/core`; durable verbs vs agent). Glossary: [`CONTEXT.md`](../CONTEXT.md).
 
 IDs **T50–T62** (foundation T1–T6, core T10–T25, telegram T30–T44; cross-board uniqueness per [tickets.md](tickets.md)).
 
@@ -10,7 +10,7 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 
 ## Themes
 
-1. **Mastra agent bootstrap** — MODEL_ID / provider wiring in `@sobrina/core`
+1. **Mastra agent bootstrap** — MODEL_ID / provider wiring in `@sobri/core`
 2. **Character + authority prompts** — baseline from character.md / agent.md (**T51**); face catalog pack (**T61**)
 3. **Session turn loop** — tools from T24; mutex via T20
 4. **Conflict rule** — ledger/tool results win
@@ -28,7 +28,7 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 
 ## T50 — Mastra agent bootstrap
 
-**Problem:** Agent runtime must live in `@sobrina/core` with model env, not in the Grammy package.
+**Problem:** Agent runtime must live in `@sobri/core` with model env, not in the Grammy package.
 
 **Done when:** Mastra agent (or equivalent Mastra agent construct) constructed in core; reads `MODEL_ID` + provider key(s) from env; fails clearly if required model env missing when generate is invoked; no Telegram imports in agent module.
 
@@ -40,11 +40,11 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 
 **Tasks:**
 
-- [ ] **T50.1** Add Mastra dependency to `@sobrina/core`; agent module path documented
+- [ ] **T50.1** Add Mastra dependency to `@sobri/core`; agent module path documented
 - [ ] **T50.2** Wire `MODEL_ID` + provider API key env into model router
-- [ ] **T50.3** `createSobrinaAgent(...)` (name may vary) factory with empty/minimal instructions stub
+- [ ] **T50.3** `createSobriAgent(...)` (name may vary) factory with empty/minimal instructions stub
 - [ ] **T50.4** Fail-fast or clear error when model env missing on first generate
-- [ ] **T50.5** Assert agent package graph: no `@sobrina/telegram` / grammy import from agent module
+- [ ] **T50.5** Assert agent package graph: no `@sobri/telegram` / grammy import from agent module
 
 ---
 
@@ -75,18 +75,18 @@ Core exposes durable verbs + T24 tool bindings; telegram delivers I/O. Phase 1 s
 
 **Problem:** Each Session turn must run the agent with durable tools under per-chat serialization.
 
-**Done when:** **`runTurn` lives in `@sobrina/core` Session path** (serialized by T20): attaches T24 tools, runs Mastra generate, returns outbound text/askWithOptions turn results; overlapping turns blocked by T20 mutex; no invented statuses outside tool results. **Telegram only feeds events and sends turn results** — **no Mastra/generate import in `@sobrina/telegram`**.
+**Done when:** **`runTurn` lives in `@sobri/core` Session path** (serialized by T20): attaches T24 tools, runs Mastra generate, returns outbound text/askWithOptions turn results; overlapping turns blocked by T20 mutex; no invented statuses outside tool results. **Telegram only feeds events and sends turn results** — **no Mastra/generate import in `@sobri/telegram`**.
 
 **Depends on:** T50, T51, core T20, core T24
 
 **Spec / arch links:** [spec/session.md](../spec/session.md), [ADR 0004](../docs/adr/0004-agentic-session-vs-day.md), [architecture.md](architecture.md) (Session hub; durable verbs vs agent; Mastra placement)
 
-**Out of scope:** Grammy send (telegram board); Mastra/generate inside `@sobrina/telegram`; reimplementing Grace Token math; Profile/Diary tools
+**Out of scope:** Grammy send (telegram board); Mastra/generate inside `@sobri/telegram`; reimplementing Grace Token math; Profile/Diary tools
 
 **Tasks:**
 
 - [ ] **T52.1** Register T24 tool list on agent for Session turns
-- [ ] **T52.2** Implement `runTurn(chatId, event)` **in `@sobrina/core`** (text / callback / scheduler kind + chat/member ids) — telegram must not own generate
+- [ ] **T52.2** Implement `runTurn(chatId, event)` **in `@sobri/core`** (text / callback / scheduler kind + chat/member ids) — telegram must not own generate
 - [ ] **T52.3** Call `runTurn` only via T20 serialized Session path; telegram feeds the event, then posts the returned turn result
 - [ ] **T52.4** Map tool/`askWithOptions` results to adapter-facing turn result shape (text + optional options)
 - [ ] **T52.5** Smoke: mocked model or tool-forced path records Check-in via tool → row in temp DB
@@ -325,7 +325,7 @@ core T20, T24, T19, T14, T17, T18, T22, T23 (gates)
 
 Suggested first three slices:
 
-1. **T50.1** — Mastra dependency + agent module path in `@sobrina/core`  
+1. **T50.1** — Mastra dependency + agent module path in `@sobri/core`  
 2. **T50.2** — `MODEL_ID` + provider key wiring  
 3. **T50.3** — agent factory stub  
 
