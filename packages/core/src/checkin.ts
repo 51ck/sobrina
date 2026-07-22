@@ -1,21 +1,17 @@
 /**
- * Record Check-in verb (T14.1 — sober write path on an open Day). See
- * tech/core-tasks.md T14, spec/daily-rhythm.md (Check-in anytime),
- * spec/stats.md (status), spec/checklist.md (join + record),
+ * Record Check-in verb (T14.1 sober path + T14.2 slip path, both on an
+ * open Day). See tech/core-tasks.md T14, spec/daily-rhythm.md (Check-in
+ * anytime), spec/stats.md (status), spec/checklist.md (join + record),
  * spec/agent.md (Record Check-in capability), CONTEXT.md (Check-in).
  *
  * A Check-in is one member's stored status for one Day: `sober` |
  * `minor_slip` | `major_slip` (CONTEXT.md). One row per (chatId,
  * memberId, dayKey) — UPSERT (T10.4 schema; product "one status per
- * member per Day"). This module owns the write path only; Grace Token
- * rules for slip live in T15 (grace.ts), full closed-Day policy and the
- * late-fix carve-out live in T14.4 / T17.
+ * member per Day"). This module owns the write path only; the Grace
+ * Token rule matrix itself lives in T15 (grace.ts); full closed-Day
+ * policy and the late-fix carve-out live in T14.4 / T17.
  *
- * ## T14.1 scope decisions
- * - **Intent:** only `sober` is implemented. `slip` is accepted in the
- *   type surface (checked first) so T14.2 can extend this verb's call
- *   sites without a signature break, but {@link recordCheckIn} throws
- *   for it until T15's `resolveSlip` is wired in here (T14.2).
+ * ## Scope decisions
  * - **Checklist membership:** requires the member already **on the
  *   Checklist** — throws {@link NotOnChecklistError} rather than
  *   silently joining. spec/checklist.md allows "Check-in from a
@@ -28,27 +24,54 @@
  *   opened still succeeds (spec/daily-rhythm.md Day resolution branch
  *   4). A `closed` Day is never reopened; this verb throws
  *   {@link DayClosedError} — an early, narrow slice of T14.4's full
- *   closed-Day policy (late corrections stay T17's job).
- * - **Grace Token earn:** after a sober write, calls
+ *   closed-Day policy (late corrections stay T17's job). Applies to both
+ *   `sober` and `slip` intents.
+ * - **Grace Token earn (sober only):** after a sober write, calls
  *   {@link maybeEarnGraceToken} with `currentStreak = 0` as a documented
  *   interim (T15's implementation note, tech/core-tasks.md — the real
  *   Streak walk is T18.1). `graceTokenN >= 1` is enforced by
  *   `updateSettings`, so `0 < graceTokenN` always holds and no token is
  *   granted via this path yet; the call shape is correct ahead of
- *   T18.1 supplying the real Streak count.
+ *   T18.1 supplying the real Streak count. **Never called for `slip`**
+ *   (ticket T14.2: explicit slip is not sober progress).
+ * - **Grace Token spend (slip, T14.2):** calls {@link resolveSlip} once
+ *   per `recordCheckIn(..., "slip")` call — resolveSlip's own read+spend
+ *   transaction (grace.ts) makes this safe to call unconditionally,
+ *   regardless of the Check-in's previous status:
+ *   - no prior row, or prior `sober` → resolves fresh; spends a held
+ *     token (`minor_slip`) or not (`major_slip`).
+ *   - prior `minor_slip`/`major_slip` for the same Day (re-recording a
+ *     slip) → resolves fresh again. If the first slip already spent the
+ *     token, the token is gone, so this call finds none and returns
+ *     `major_slip` — **not** a double-spend, but note this can *upgrade*
+ *     a `minor_slip` to `major_slip` on a same-Day re-slip. Accepted per
+ *     ticket: "one status per Day", and resolving fresh each time is the
+ *     simplest rule that cannot double-spend.
+ * - **Grace Token refund (sober-over-slip, T14.1 note):** if a `sober`
+ *   write overwrites a prior Check-in that had `spent_grace_token = 1`,
+ *   {@link refundGraceToken} runs first (mirrors T17's late-fix refund,
+ *   spec/stats.md "Late fix to sober: refund token if that Check-in
+ *   spent one") — cheap: one extra read of the existing row before the
+ *   UPSERT — and keeps an open-Day sober correction from leaving a
+ *   spent token stranded ahead of T17. Note the inverse is not
+ *   symmetric: re-slipping after a slip already cleared the token
+ *   (module doc above) does not restore it on a later sober write,
+ *   since `spent_grace_token` is already `0` by then — matches the
+ *   ticket's literal UPSERT shape, flagged here for T17/T18 awareness.
  * - **Membership + Day-open check + write** run inside one
- *   `store.db.transaction` (mirrors grace.ts's `resolveSlip`) so a
- *   concurrent `closeDay` (T16 Deadline close, e.g. another process
- *   sharing the SQLite file) cannot land between the open-Day check and
- *   the write.
+ *   `store.db.transaction` so a concurrent `closeDay` (T16 Deadline
+ *   close, e.g. another process sharing the SQLite file) cannot land
+ *   between the open-Day check and the write. `resolveSlip`'s own
+ *   transaction nests inside via SQLite `SAVEPOINT` (bun:sqlite
+ *   `Database.transaction` supports nesting).
  */
 import type { Store } from "./store.ts";
 import { isOnChecklist } from "./checklist.ts";
 import { ensureOpenDay, type Day, type DayKey } from "./day.ts";
-import { maybeEarnGraceToken } from "./grace.ts";
+import { maybeEarnGraceToken, refundGraceToken, resolveSlip, type SlipResolution } from "./grace.ts";
 import { getSettings } from "./settings.ts";
 
-/** Caller's recorded intent — see T14.1 scope note above for `slip`. */
+/** Caller's recorded intent — see module doc above for the `sober` / `slip` write paths. */
 export type CheckInIntent = "sober" | "slip";
 
 /** Stored Check-in status (CONTEXT.md Check-in; spec/stats.md). */
@@ -162,12 +185,9 @@ function readCheckInRow(
 }
 
 /**
- * Overwrites `spent_grace_token` to `0` unconditionally. Correct while
- * only `sober` intent exists (this slice); once T14.2 lands a
- * sober-over-slip overwrite through this same open-Day path, that
- * caller must call grace.ts's `refundGraceToken` (T15.4) *before* this
- * clears the flag, the same way T17's late fix does — this helper does
- * not infer that on its own.
+ * Writes `sober`, refunding a token first (T15.4 `refundGraceToken`) if
+ * the row being overwritten had `spent_grace_token = 1` — see module doc
+ * "Grace Token refund (sober-over-slip, T14.1 note)".
  */
 function writeSober(
   store: Store,
@@ -175,6 +195,11 @@ function writeSober(
   memberId: string,
   dayKey: DayKey,
 ): CheckIn {
+  const previous = readCheckInRow(store, chatId, memberId, dayKey);
+  if (previous?.spentGraceToken) {
+    refundGraceToken(store, chatId, memberId);
+  }
+
   store.db
     .query(
       `INSERT INTO check_ins (chat_id, member_id, day_key, status, spent_grace_token)
@@ -190,19 +215,49 @@ function writeSober(
   return readCheckInRow(store, chatId, memberId, dayKey) as CheckIn;
 }
 
+/** Writes the status/spend outcome a {@link resolveSlip} call already decided. */
+function writeSlip(
+  store: Store,
+  chatId: string,
+  memberId: string,
+  dayKey: DayKey,
+  resolution: SlipResolution,
+): CheckIn {
+  store.db
+    .query(
+      `INSERT INTO check_ins (chat_id, member_id, day_key, status, spent_grace_token)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(chat_id, member_id, day_key) DO UPDATE SET
+         status = excluded.status,
+         spent_grace_token = excluded.spent_grace_token,
+         updated_at = datetime('now')`,
+    )
+    .run(
+      chatId,
+      memberId,
+      dayKey,
+      resolution.status,
+      resolution.spentToken ? 1 : 0,
+    );
+
+  // Present immediately after the statement above — non-null by construction.
+  return readCheckInRow(store, chatId, memberId, dayKey) as CheckIn;
+}
+
 /**
- * Record a Check-in for `memberId` on `dayKey` (T14.1: `sober` only —
- * see module doc for `slip`, Checklist, and Day-lifecycle scope notes).
+ * Record a Check-in for `memberId` on `dayKey` — `sober` (T14.1) or
+ * `slip` via Grace Token rules (T14.2). See module doc for Checklist,
+ * Day-lifecycle, and Grace Token earn/spend/refund scope notes.
  *
- * Order of checks: intent (`slip` rejected first), then Checklist
- * membership, then Day open (via {@link ensureOpenDay}), then write —
- * the last three run inside one `store.db.transaction` (module doc).
- * Throws {@link NotOnChecklistError} / {@link DayClosedError}
- * accordingly; rejects blank `chatId` / `memberId` / `dayKey`.
+ * Order of checks: Checklist membership, then Day open (via
+ * {@link ensureOpenDay}), then the intent-specific write — all three run
+ * inside one `store.db.transaction` (module doc). Throws
+ * {@link NotOnChecklistError} / {@link DayClosedError} accordingly;
+ * rejects blank `chatId` / `memberId` / `dayKey`.
  *
- * One status per (chat, member, Day) — a second sober Check-in for the
- * same Day updates the existing row rather than erroring (T10.4 PK,
- * product "one status per member per Day").
+ * One status per (chat, member, Day) — a second Check-in (either
+ * intent) for the same Day updates the existing row rather than
+ * erroring (T10.4 PK, product "one status per member per Day").
  */
 export function recordCheckIn(
   store: Store,
@@ -215,23 +270,24 @@ export function recordCheckIn(
   const member = requireMemberId(memberId);
   const key = requireDayKey(dayKey);
 
-  if (intent === "slip") {
-    throw new Error(
-      `recordCheckIn: "slip" intent lands in tech/core-tasks.md T14.2 (chatId=${chat} memberId=${member} dayKey=${key})`,
-    );
-  }
-
   const run = store.db.transaction((): CheckIn => {
     if (!isOnChecklist(store, chat, member)) {
       throw new NotOnChecklistError(chat, member);
     }
     requireOpenDay(store, chat, key);
+    if (intent === "slip") {
+      const resolution = resolveSlip(store, chat, member);
+      return writeSlip(store, chat, member, key, resolution);
+    }
     return writeSober(store, chat, member, key);
   });
   const checkIn = run();
 
-  const settings = getSettings(store, chat);
-  maybeEarnGraceToken(store, chat, member, 0, settings.graceTokenN);
+  // Grace Token earn is sober-progress-only (module doc) — never for slip.
+  if (intent === "sober") {
+    const settings = getSettings(store, chat);
+    maybeEarnGraceToken(store, chat, member, 0, settings.graceTokenN);
+  }
 
   return checkIn;
 }
