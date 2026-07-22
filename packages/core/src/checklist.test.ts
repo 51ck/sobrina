@@ -2,7 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { joinChecklist, leaveChecklist } from "./checklist.ts";
+import {
+  joinChecklist,
+  leaveChecklist,
+  removeFromChecklist,
+} from "./checklist.ts";
 import { migrate } from "./migrate.ts";
 import { openStore, type Store } from "./store.ts";
 
@@ -119,5 +123,37 @@ describe("T12.2 — leaveChecklist", () => {
     const store = await freshStore();
     expect(() => leaveChecklist(store, "  ", "member-1")).toThrow();
     expect(() => leaveChecklist(store, "chat-1", "  ")).toThrow();
+  });
+});
+
+describe("T12.3 — removeFromChecklist (admin path)", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("removes an active member (same durable effect as leaveChecklist)", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    removeFromChecklist(store, "chat-1", "member-1");
+
+    const row = store.db
+      .query(
+        "SELECT left_at FROM checklist_members WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { left_at: string | null };
+    expect(row.left_at).toBeTruthy();
+  });
+
+  test("removing an absent member is a safe no-op", async () => {
+    const store = await freshStore();
+    expect(() =>
+      removeFromChecklist(store, "chat-1", "member-1"),
+    ).not.toThrow();
+  });
+
+  test("a removed member can rejoin later", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    removeFromChecklist(store, "chat-1", "member-1");
+    const rejoined = joinChecklist(store, "chat-1", "member-1");
+    expect(rejoined.memberId).toBe("member-1");
   });
 });

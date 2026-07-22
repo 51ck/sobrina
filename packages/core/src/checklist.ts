@@ -124,3 +124,18 @@ export function leaveChecklist(
     )
     .run(chat, member);
 }
+
+/**
+ * Admin remove from the Checklist (T12.3) — same durable remove as
+ * {@link leaveChecklist}. The Telegram adapter is responsible for
+ * confirming the caller is a chat admin before invoking this; core takes
+ * the "admin remove" intent as given and has no admin-role check itself
+ * (tech/core-tasks.md T12 Out of scope).
+ */
+export function removeFromChecklist(
+  store: Store,
+  chatId: string,
+  memberId: string,
+): void {
+  leaveChecklist(store, chatId, memberId);
+}
