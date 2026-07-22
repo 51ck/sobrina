@@ -69,3 +69,10 @@ export {
   type CheckInIntent,
   type CheckInStatus,
 } from "./checkin.ts";
+
+export {
+  listSilentChecklistMembers,
+  autoSlipSilentMembers,
+  closeDayAtDeadline,
+  type CloseDayAtDeadlineResult,
+} from "./deadline.ts";
