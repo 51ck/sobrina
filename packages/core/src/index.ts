@@ -69,3 +69,5 @@ export {
   type CheckInIntent,
   type CheckInStatus,
 } from "./checkin.ts";
+
+export { listSilentChecklistMembers } from "./deadline.ts";
