@@ -27,6 +27,30 @@ CREATE TABLE IF NOT EXISTS schema_meta (
       ).run("product_schema", "001-empty");
     },
   },
+  {
+    // T10.1 — chats (stable core chat id) + chat_settings (Reminder, Deadline,
+    // timezone, Grace Token N). See tech/core-tasks.md T10.1, spec/daily-rhythm.md
+    // Settings table, CONTEXT.md Grace Token (N default 3).
+    id: "002",
+    up(db) {
+      db.exec(`
+CREATE TABLE IF NOT EXISTS chats (
+  id TEXT PRIMARY KEY NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS chat_settings (
+  chat_id TEXT PRIMARY KEY NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  reminder_time TEXT,
+  deadline_time TEXT,
+  timezone TEXT NOT NULL DEFAULT 'UTC',
+  grace_token_n INTEGER NOT NULL DEFAULT 3,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`);
+    },
+  },
 ];
 
 const MIGRATIONS_TABLE = `
