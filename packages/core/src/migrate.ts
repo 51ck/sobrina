@@ -67,6 +67,25 @@ CREATE TABLE IF NOT EXISTS checklist_members (
 `);
     },
   },
+  {
+    // T10.3 — days (chat + Day key + open/closed). Day key = Reminder-cycle
+    // evening date (ADR 0002). See tech/core-tasks.md T10.3, CONTEXT.md Day.
+    id: "004",
+    up(db) {
+      db.exec(`
+CREATE TABLE IF NOT EXISTS days (
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  day_key TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  reminder_at TEXT,
+  deadline_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  closed_at TEXT,
+  PRIMARY KEY (chat_id, day_key)
+);
+`);
+    },
+  },
 ];
 
 const MIGRATIONS_TABLE = `

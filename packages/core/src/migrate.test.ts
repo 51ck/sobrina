@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { migrate } from "./migrate.ts";
 import { openStore, type Store } from "./store.ts";
 
-describe("T10.1 — chats + chat_settings migration", () => {
+/** Shared temp DB harness for migration slice tests. */
+function useMigratedStore() {
   let dir: string;
   let store: Store | undefined;
 
@@ -20,11 +21,18 @@ describe("T10.1 — chats + chat_settings migration", () => {
     const path = join(dir, "test.db");
     const s = await openStore(path);
     migrate(s);
+    store = s;
     return s;
   }
 
+  return { freshStore };
+}
+
+describe("T10.1 — chats + chat_settings migration", () => {
+  const { freshStore } = useMigratedStore();
+
   test("creates chats + chat_settings tables", async () => {
-    store = await freshStore();
+    const store = await freshStore();
     const tables = store.db
       .query(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('chats', 'chat_settings')",
@@ -37,7 +45,7 @@ describe("T10.1 — chats + chat_settings migration", () => {
   });
 
   test("chat_settings.grace_token_n defaults to 3", async () => {
-    store = await freshStore();
+    const store = await freshStore();
     store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
     store.db
       .query("INSERT INTO chat_settings (chat_id) VALUES (?)")
@@ -52,7 +60,7 @@ describe("T10.1 — chats + chat_settings migration", () => {
   });
 
   test("chat_settings row is removed when chat is deleted (ON DELETE CASCADE)", async () => {
-    store = await freshStore();
+    const store = await freshStore();
     store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
     store.db
       .query("INSERT INTO chat_settings (chat_id) VALUES (?)")
@@ -68,25 +76,10 @@ describe("T10.1 — chats + chat_settings migration", () => {
 });
 
 describe("T10.2 — checklist_members migration", () => {
-  let dir: string;
-  let store: Store | undefined;
-
-  afterEach(() => {
-    store?.close();
-    store = undefined;
-    if (dir) rmSync(dir, { recursive: true, force: true });
-  });
-
-  async function freshStore(): Promise<Store> {
-    dir = mkdtempSync(join(tmpdir(), "sobri-migrate-"));
-    const path = join(dir, "test.db");
-    const s = await openStore(path);
-    migrate(s);
-    return s;
-  }
+  const { freshStore } = useMigratedStore();
 
   test("creates checklist_members table", async () => {
-    store = await freshStore();
+    const store = await freshStore();
     const row = store.db
       .query(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'checklist_members'",
@@ -96,7 +89,7 @@ describe("T10.2 — checklist_members migration", () => {
   });
 
   test("stores chat + member with join/leave timestamps", async () => {
-    store = await freshStore();
+    const store = await freshStore();
     store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
     store.db
       .query(
@@ -132,5 +125,75 @@ describe("T10.2 — checklist_members migration", () => {
       )
       .get("chat-1", "member-1") as { left_at: string };
     expect(left.left_at).toBeTruthy();
+  });
+});
+
+describe("T10.3 — days migration", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("creates days table", async () => {
+    const store = await freshStore();
+    const row = store.db
+      .query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'days'",
+      )
+      .get() as { name: string } | null;
+    expect(row?.name).toBe("days");
+  });
+
+  test("stores chat + day_key with open/closed status and cycle metadata", async () => {
+    const store = await freshStore();
+    store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
+    store.db
+      .query(
+        "INSERT INTO days (chat_id, day_key, reminder_at, deadline_at) VALUES (?, ?, ?, ?)",
+      )
+      .run("chat-1", "2026-07-21", "2026-07-21T21:00:00Z", "2026-07-22T09:00:00Z");
+
+    const row = store.db
+      .query(
+        "SELECT chat_id, day_key, status, reminder_at, deadline_at, closed_at FROM days WHERE chat_id = ? AND day_key = ?",
+      )
+      .get("chat-1", "2026-07-21") as {
+      chat_id: string;
+      day_key: string;
+      status: string;
+      reminder_at: string;
+      deadline_at: string;
+      closed_at: string | null;
+    };
+
+    expect(row.chat_id).toBe("chat-1");
+    expect(row.day_key).toBe("2026-07-21");
+    expect(row.status).toBe("open");
+    expect(row.reminder_at).toBe("2026-07-21T21:00:00Z");
+    expect(row.deadline_at).toBe("2026-07-22T09:00:00Z");
+    expect(row.closed_at).toBeNull();
+
+    store.db
+      .query(
+        "UPDATE days SET status = 'closed', closed_at = datetime('now') WHERE chat_id = ? AND day_key = ?",
+      )
+      .run("chat-1", "2026-07-21");
+
+    const closed = store.db
+      .query(
+        "SELECT status, closed_at FROM days WHERE chat_id = ? AND day_key = ?",
+      )
+      .get("chat-1", "2026-07-21") as { status: string; closed_at: string };
+    expect(closed.status).toBe("closed");
+    expect(closed.closed_at).toBeTruthy();
+  });
+
+  test("rejects status outside open|closed", async () => {
+    const store = await freshStore();
+    store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
+    expect(() => {
+      store.db
+        .query(
+          "INSERT INTO days (chat_id, day_key, status) VALUES (?, ?, ?)",
+        )
+        .run("chat-1", "2026-07-21", "pending");
+    }).toThrow();
   });
 });

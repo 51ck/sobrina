@@ -45,7 +45,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 - [x] **T10.1** Migration: `chats` (stable core chat id) + chat settings columns/table (Reminder time, Deadline time, timezone, N; N default **3**)
 - [x] **T10.2** Migration: Checklist membership (chat + member; join/leave timestamps as needed)
-- [ ] **T10.3** Migration: `days` (chat + Day key date + open/closed + Reminder/Deadline cycle metadata as needed)
+- [x] **T10.3** Migration: `days` (chat + Day key date + open/closed + Reminder/Deadline cycle metadata as needed)
 - [ ] **T10.4** Migration: `check_ins` (chat, member, Day key, status `sober` | `minor_slip` | `major_slip`, token-spend flag for refund)
 - [ ] **T10.5** Migration: Grace Token state per Checklist member (cap 1; present/absent) — or equivalent columns documented in schema
 - [ ] **T10.6** Tests: migrate fresh DB → expected tables exist; no memory tables
