@@ -336,3 +336,59 @@ describe("T10.5 — grace_tokens migration", () => {
     }).toThrow();
   });
 });
+
+describe("T10.6 — fresh DB ledger schema (no memory tables)", () => {
+  const { freshStore } = useMigratedStore();
+
+  const LEDGER_TABLES = [
+    "chats",
+    "chat_settings",
+    "checklist_members",
+    "days",
+    "check_ins",
+    "grace_tokens",
+  ] as const;
+
+  test("migrate fresh DB → Phase 1 ledger tables exist", async () => {
+    const store = await freshStore();
+    const rows = store.db
+      .query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      )
+      .all() as Array<{ name: string }>;
+    const names = rows.map((r) => r.name);
+
+    for (const table of LEDGER_TABLES) {
+      expect(names).toContain(table);
+    }
+    expect(names).toContain("schema_migrations");
+  });
+
+  test("migrate fresh DB → no Profile/Diary memory tables or columns", async () => {
+    const store = await freshStore();
+    const tables = store.db
+      .query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      )
+      .all() as Array<{ name: string }>;
+    const names = tables.map((r) => r.name);
+
+    const memoryTables = names.filter((n) =>
+      /profile|diary|memory/i.test(n),
+    );
+    expect(memoryTables).toEqual([]);
+
+    const memoryColumns: string[] = [];
+    for (const table of names) {
+      const cols = store.db
+        .query(`PRAGMA table_info(${JSON.stringify(table)})`)
+        .all() as Array<{ name: string }>;
+      for (const col of cols) {
+        if (/profile|diary|memory/i.test(col.name)) {
+          memoryColumns.push(`${table}.${col.name}`);
+        }
+      }
+    }
+    expect(memoryColumns).toEqual([]);
+  });
+});
