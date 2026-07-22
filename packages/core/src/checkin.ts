@@ -10,7 +10,16 @@
  * memberId, dayKey) — UPSERT (T10.4 schema; product "one status per
  * member per Day"). This module owns the write path only; the Grace
  * Token rule matrix itself lives in T15 (grace.ts); the late-fix
- * carve-out lives in T17.
+ * carve-out lives in T17. {@link getCheckIn} is exported from
+ * `@sobri/core`'s `index.ts` barrel as public API; {@link writeSober} /
+ * {@link writeSlip} are exported at module level only (internal
+ * cross-module seam, not re-exported from the barrel) so T17.2's
+ * `correctCheckIn` (latefix.ts) can import them directly from
+ * `./checkin.ts` and reuse the exact same write + refund-on-overwrite
+ * logic on a **closed** Day instead of duplicating it — this module's
+ * own {@link recordCheckIn} still gates those writes on the Day being
+ * **open** (via `requireOpenDay`); the writes themselves do not check
+ * Day status, so each caller owns its own open/closed gate.
  *
  * ## Reject cases (T14.4)
  *
@@ -224,11 +233,41 @@ function readCheckInRow(
 }
 
 /**
+ * Read the stored Check-in for `(chatId, memberId, dayKey)`, or `null` if
+ * none exists yet. Public read companion to {@link recordCheckIn} — used
+ * by T17.2 `correctCheckIn` (latefix.ts) to require an existing row
+ * before correcting one (late fix corrects, it does not create).
+ */
+export function getCheckIn(
+  store: Store,
+  chatId: string,
+  memberId: string,
+  dayKey: DayKey,
+): CheckIn | null {
+  const chat = requireChatId(chatId);
+  const member = requireMemberId(memberId);
+  const key = requireDayKey(dayKey);
+  return readCheckInRow(store, chat, member, key);
+}
+
+/**
  * Writes `sober`, refunding a token first (T15.4 `refundGraceToken`) if
  * the row being overwritten had `spent_grace_token = 1` — see module doc
  * "Grace Token refund (sober-over-slip, T14.1 note)".
+ *
+ * Exported at module level (not just used by {@link recordCheckIn}, and
+ * not re-exported from `@sobri/core`'s `index.ts` barrel — an internal
+ * cross-module seam for `latefix.ts`, not public API) because T17.2
+ * `correctCheckIn` (latefix.ts) reuses this exact refund-on-overwrite
+ * write for the closed-Day late-fix-to-sober case — the "refund if that
+ * Check-in spent one" rule (spec/stats.md) is identically the condition
+ * this function already checks, so the late-fix verb calls it directly
+ * rather than duplicating the read-refund-write sequence. Does **not**
+ * check Day status itself — callers (`recordCheckIn` via
+ * `requireOpenDay`, `correctCheckIn` via `isLateFixAllowed`) are
+ * responsible for the open/closed gate before calling this.
  */
-function writeSober(
+export function writeSober(
   store: Store,
   chatId: string,
   memberId: string,
@@ -254,8 +293,16 @@ function writeSober(
   return readCheckInRow(store, chatId, memberId, dayKey) as CheckIn;
 }
 
-/** Writes the status/spend outcome a {@link resolveSlip} call already decided. */
-function writeSlip(
+/**
+ * Writes the status/spend outcome a {@link resolveSlip} call already
+ * decided. Exported at module level for the same reason as
+ * {@link writeSober} (not re-exported from the `index.ts` barrel —
+ * internal seam for `latefix.ts`) — T17.2 `correctCheckIn` (latefix.ts)
+ * reuses this for a late-fix correction *to* slip, after calling
+ * {@link resolveSlip} itself. Does not check Day status (see
+ * {@link writeSober}'s note).
+ */
+export function writeSlip(
   store: Store,
   chatId: string,
   memberId: string,

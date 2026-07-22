@@ -63,6 +63,7 @@ export {
 export {
   recordCheckIn,
   joinAndRecordCheckIn,
+  getCheckIn,
   NotOnChecklistError,
   DayClosedError,
   type CheckIn,
@@ -76,3 +77,14 @@ export {
   closeDayAtDeadline,
   type CloseDayAtDeadlineResult,
 } from "./deadline.ts";
+
+export {
+  isLateFixAllowed,
+  nextReminderAfterDay,
+  correctCheckIn,
+  LateFixFenceUnknownError,
+  LateFixNotAllowedError,
+  CheckInNotFoundError,
+  type LateFixSettings,
+  type LateFixRejectReason,
+} from "./latefix.ts";
