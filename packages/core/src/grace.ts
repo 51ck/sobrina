@@ -117,3 +117,38 @@ export function consumeGraceToken(
   const member = requireMemberId(memberId);
   writePresent(store, chat, member, 0);
 }
+
+/** Outcome of {@link resolveSlip} — the status T14/T16 should write to `check_ins`. */
+export type SlipResolution = {
+  readonly status: "minor_slip" | "major_slip";
+  readonly spentToken: boolean;
+};
+
+/**
+ * Resolve a slip write against Grace Token rules (T15.2, ADR 0001,
+ * spec/stats.md): a token present shields the slip (`minor_slip`) and is
+ * spent; no token leaves it unshielded (`major_slip`). Read+spend runs in
+ * one transaction so concurrent slip writes for the same member cannot
+ * both observe and spend the same token.
+ *
+ * This resolves the *status* only — it does not touch `check_ins` (T14
+ * "Record Check-in" / T16 "Deadline auto-slip" own that write and pass
+ * `spentToken` into their `spent_grace_token` column for T15.4 refund).
+ */
+export function resolveSlip(
+  store: Store,
+  chatId: string,
+  memberId: string,
+): SlipResolution {
+  const chat = requireChatId(chatId);
+  const member = requireMemberId(memberId);
+  getOrCreateChat(store, chat);
+  const run = store.db.transaction((): SlipResolution => {
+    if (hasGraceToken(store, chat, member)) {
+      writePresent(store, chat, member, 0);
+      return { status: "minor_slip", spentToken: true };
+    }
+    return { status: "major_slip", spentToken: false };
+  });
+  return run();
+}

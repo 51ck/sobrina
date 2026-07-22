@@ -54,4 +54,6 @@ export {
   hasGraceToken,
   grantGraceToken,
   consumeGraceToken,
+  resolveSlip,
+  type SlipResolution,
 } from "./grace.ts";

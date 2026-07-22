@@ -6,6 +6,7 @@ import {
   consumeGraceToken,
   grantGraceToken,
   hasGraceToken,
+  resolveSlip,
 } from "./grace.ts";
 import { migrate } from "./migrate.ts";
 import { openStore, type Store } from "./store.ts";
@@ -99,5 +100,66 @@ describe("T15.1 — hasGraceToken / grantGraceToken / consumeGraceToken", () => 
     expect(() => grantGraceToken(store, "chat-1", "  ")).toThrow();
     expect(() => consumeGraceToken(store, "  ", "member-1")).toThrow();
     expect(() => consumeGraceToken(store, "chat-1", "  ")).toThrow();
+  });
+});
+
+describe("T15.2 — resolveSlip", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("with a token present → minor_slip, token spent", async () => {
+    const store = await freshStore();
+    grantGraceToken(store, "chat-1", "member-1");
+
+    const outcome = resolveSlip(store, "chat-1", "member-1");
+
+    expect(outcome).toEqual({ status: "minor_slip", spentToken: true });
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+  });
+
+  test("without a token → major_slip, nothing to spend", async () => {
+    const store = await freshStore();
+
+    const outcome = resolveSlip(store, "chat-1", "member-1");
+
+    expect(outcome).toEqual({ status: "major_slip", spentToken: false });
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+  });
+
+  test("a second slip right after a spend is unshielded (no lingering spend)", async () => {
+    const store = await freshStore();
+    grantGraceToken(store, "chat-1", "member-1");
+
+    const first = resolveSlip(store, "chat-1", "member-1");
+    const second = resolveSlip(store, "chat-1", "member-1");
+
+    expect(first.status).toBe("minor_slip");
+    expect(second).toEqual({ status: "major_slip", spentToken: false });
+  });
+
+  test("creates the chat if needed, like other verbs", async () => {
+    const store = await freshStore();
+    resolveSlip(store, "chat-1", "member-1");
+
+    const chat = store.db
+      .query("SELECT 1 AS ok FROM chats WHERE id = ?")
+      .get("chat-1");
+    expect(chat).not.toBeNull();
+  });
+
+  test("resolveSlip is scoped per chat and per member", async () => {
+    const store = await freshStore();
+    grantGraceToken(store, "chat-1", "member-1");
+
+    expect(resolveSlip(store, "chat-2", "member-1")).toEqual({
+      status: "major_slip",
+      spentToken: false,
+    });
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+  });
+
+  test("rejects blank chatId or memberId", async () => {
+    const store = await freshStore();
+    expect(() => resolveSlip(store, "  ", "member-1")).toThrow();
+    expect(() => resolveSlip(store, "chat-1", "  ")).toThrow();
   });
 });
