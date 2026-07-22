@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isOnChecklist, joinChecklist, leaveChecklist } from "./checklist.ts";
 import { recordCheckIn } from "./checkin.ts";
-import { closeDay, ensureOpenDay } from "./day.ts";
+import { closeDay, ensureOpenDay, getDay } from "./day.ts";
 import {
   autoSlipSilentMembers,
   closeDayAtDeadline,
@@ -407,5 +407,91 @@ describe("T16.3 — closeDayAtDeadline", () => {
     const store = await freshStore();
     expect(() => closeDayAtDeadline(store, "  ", "2024-01-01")).toThrow();
     expect(() => closeDayAtDeadline(store, "chat-1", "  ")).toThrow();
+  });
+});
+
+/**
+ * T16.4 — theme close-out. T16.1–T16.3 above already cover each Done-when
+ * cell individually (mostly via `autoSlipSilentMembers`, not the board's
+ * verb); this block re-walks the required matrix through
+ * `closeDayAtDeadline` itself — the composed verb the board names — so the
+ * Done-when is exercised at the seam it names, not just at lower helpers.
+ * The empty-Checklist safety cell is not repeated here: the T16.3
+ * "empty Checklist → safe" test above already calls `closeDayAtDeadline`
+ * directly and is not redundant with anything below.
+ */
+describe("T16.4 — closeDayAtDeadline close-out matrix", () => {
+  const { freshStore } = useMigratedStore();
+
+  const ALLOWED_STATUSES = ["sober", "minor_slip", "major_slip"] as const;
+
+  test("all silent: every Checklist member is auto-slipped by Grace Token rules, token spent/gone, Day closed", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-shielded");
+    grantGraceToken(store, "chat-1", "member-shielded");
+    joinChecklist(store, "chat-1", "member-unshielded");
+
+    const result = closeDayAtDeadline(store, "chat-1", "2024-01-01");
+
+    const shielded = result.checkIns.find((c) => c.memberId === "member-shielded");
+    const unshielded = result.checkIns.find((c) => c.memberId === "member-unshielded");
+    expect(shielded?.status).toBe("minor_slip");
+    expect(shielded?.spentGraceToken).toBe(true);
+    expect(unshielded?.status).toBe("major_slip");
+    expect(unshielded?.spentGraceToken).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "member-shielded")).toBe(false);
+
+    for (const checkIn of result.checkIns) {
+      expect(ALLOWED_STATUSES).toContain(checkIn.status);
+    }
+    expect(getDay(store, "chat-1", "2024-01-01")?.status).toBe("closed");
+    expect(result.day.status).toBe("closed");
+  });
+
+  test("partial Check-ins: already-checked member untouched, silent members slipped via Grace Token rules, Day closed", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-checked");
+    const before = recordCheckIn(
+      store,
+      "chat-1",
+      "member-checked",
+      "2024-01-01",
+      "sober",
+    );
+    joinChecklist(store, "chat-1", "member-shielded");
+    grantGraceToken(store, "chat-1", "member-shielded");
+    joinChecklist(store, "chat-1", "member-unshielded");
+
+    const result = closeDayAtDeadline(store, "chat-1", "2024-01-01");
+
+    expect(result.checkIns.map((c) => c.memberId).sort()).toEqual([
+      "member-shielded",
+      "member-unshielded",
+    ]);
+    const after = store.db
+      .query(
+        `SELECT status, spent_grace_token AS spentGraceToken, updated_at AS updatedAt
+         FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?`,
+      )
+      .get("chat-1", "member-checked", "2024-01-01") as {
+      status: string;
+      spentGraceToken: number;
+      updatedAt: string;
+    };
+    expect(after.status).toBe("sober");
+    expect(after.spentGraceToken).toBe(0);
+    expect(after.updatedAt).toBe(before.updatedAt);
+    expect(hasGraceToken(store, "chat-1", "member-shielded")).toBe(false);
+
+    // No `missed` / `absent` (or anything else) on any row for this Day —
+    // touched or untouched — through the composed verb.
+    const rows = store.db
+      .query("SELECT status FROM check_ins WHERE chat_id = ? AND day_key = ?")
+      .all("chat-1", "2024-01-01") as Array<{ status: string }>;
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      expect(ALLOWED_STATUSES).toContain(row.status);
+    }
+    expect(getDay(store, "chat-1", "2024-01-01")?.status).toBe("closed");
   });
 });
