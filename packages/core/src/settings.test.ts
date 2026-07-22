@@ -215,3 +215,38 @@ describe("T11.3 — defaults + representation", () => {
     expect(updated.timezone).toBe("Asia/Tokyo");
   });
 });
+
+describe("T11.4 — create → defaults → patch → read back", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("full settings round-trip", async () => {
+    const store = await freshStore();
+
+    const created = getOrCreateChat(store, "chat-roundtrip");
+    expect(created).toEqual({
+      chatId: "chat-roundtrip",
+      reminderTime: null,
+      deadlineTime: null,
+      timezone: DEFAULT_TIMEZONE,
+      graceTokenN: DEFAULT_GRACE_TOKEN_N,
+    });
+
+    updateSettings(store, "chat-roundtrip", {
+      reminderTime: "21:00",
+      deadlineTime: "09:30",
+      timezone: "Europe/Moscow",
+      graceTokenN: 7,
+    });
+
+    expect(getSettings(store, "chat-roundtrip")).toEqual({
+      chatId: "chat-roundtrip",
+      reminderTime: "21:00",
+      deadlineTime: "09:30",
+      timezone: "Europe/Moscow",
+      graceTokenN: 7,
+    });
+
+    // Second open does not reset patched values.
+    expect(getOrCreateChat(store, "chat-roundtrip").graceTokenN).toBe(7);
+  });
+});
