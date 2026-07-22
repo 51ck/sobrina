@@ -70,4 +70,7 @@ export {
   type CheckInStatus,
 } from "./checkin.ts";
 
-export { listSilentChecklistMembers } from "./deadline.ts";
+export {
+  listSilentChecklistMembers,
+  autoSlipSilentMembers,
+} from "./deadline.ts";

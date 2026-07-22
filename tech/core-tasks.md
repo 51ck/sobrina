@@ -187,7 +187,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 **Tasks:**
 
 - [x] **T16.1** Identify silent Checklist members for Day (no Check-in row yet)
-- [ ] **T16.2** Write slip-class Check-in per silent member via Grace Token rules
+- [x] **T16.2** Write slip-class Check-in per silent member via Grace Token rules
 - [ ] **T16.3** Close Day after auto-slips; safe if Checklist empty (document: no Summary obligation at verb layer — product Summary when Checklist exists is T23/agent)
 - [ ] **T16.4** Tests: all silent; partial Check-ins; token spend on silence; Day closed afterward
 
