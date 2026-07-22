@@ -59,3 +59,13 @@ export {
   maybeEarnGraceToken,
   refundGraceToken,
 } from "./grace.ts";
+
+export {
+  recordCheckIn,
+  joinAndRecordCheckIn,
+  NotOnChecklistError,
+  DayClosedError,
+  type CheckIn,
+  type CheckInIntent,
+  type CheckInStatus,
+} from "./checkin.ts";
