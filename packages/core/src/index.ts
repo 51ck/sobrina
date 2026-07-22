@@ -27,3 +27,5 @@ export {
   type ChatSettingsPatch,
   type ClockTime,
 } from "./settings.ts";
+
+export { joinChecklist, type ChecklistMembership } from "./checklist.ts";

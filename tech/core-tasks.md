@@ -87,7 +87,7 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 **Tasks:**
 
-- [ ] **T12.1** `joinChecklist(chatId, memberId)` — idempotent
+- [x] **T12.1** `joinChecklist(chatId, memberId)` — idempotent
 - [ ] **T12.2** `leaveChecklist(chatId, memberId)`
 - [ ] **T12.3** `removeFromChecklist(chatId, memberId)` (admin path; same durable remove)
 - [ ] **T12.4** `listChecklist(chatId)` / `isOnChecklist(...)`
