@@ -6,6 +6,7 @@ import {
   consumeGraceToken,
   grantGraceToken,
   hasGraceToken,
+  maybeEarnGraceToken,
   resolveSlip,
 } from "./grace.ts";
 import { migrate } from "./migrate.ts";
@@ -161,5 +162,80 @@ describe("T15.2 — resolveSlip", () => {
     const store = await freshStore();
     expect(() => resolveSlip(store, "  ", "member-1")).toThrow();
     expect(() => resolveSlip(store, "chat-1", "  ")).toThrow();
+  });
+});
+
+describe("T15.3 — maybeEarnGraceToken", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("streak below N grants nothing", async () => {
+    const store = await freshStore();
+    const granted = maybeEarnGraceToken(store, "chat-1", "member-1", 2, 3);
+
+    expect(granted).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+  });
+
+  test("streak reaching N grants a token when none is held", async () => {
+    const store = await freshStore();
+    const granted = maybeEarnGraceToken(store, "chat-1", "member-1", 3, 3);
+
+    expect(granted).toBe(true);
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+  });
+
+  test("streak past N also grants (>= N, not only ==)", async () => {
+    const store = await freshStore();
+    const granted = maybeEarnGraceToken(store, "chat-1", "member-1", 5, 3);
+    expect(granted).toBe(true);
+  });
+
+  test("cap 1 — already holding a token stays a no-op even at streak >= N", async () => {
+    const store = await freshStore();
+    grantGraceToken(store, "chat-1", "member-1");
+
+    const granted = maybeEarnGraceToken(store, "chat-1", "member-1", 10, 3);
+
+    expect(granted).toBe(false);
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM grace_tokens WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("re-earn after spend by reaching N again", async () => {
+    const store = await freshStore();
+    maybeEarnGraceToken(store, "chat-1", "member-1", 3, 3);
+    resolveSlip(store, "chat-1", "member-1");
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+
+    const rearned = maybeEarnGraceToken(store, "chat-1", "member-1", 3, 3);
+
+    expect(rearned).toBe(true);
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+  });
+
+  test("repeated calls at streak >= N do not double-stack", async () => {
+    const store = await freshStore();
+    maybeEarnGraceToken(store, "chat-1", "member-1", 3, 3);
+    maybeEarnGraceToken(store, "chat-1", "member-1", 4, 3);
+    maybeEarnGraceToken(store, "chat-1", "member-1", 5, 3);
+
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM grace_tokens WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("rejects blank chatId or memberId", async () => {
+    const store = await freshStore();
+    expect(() => maybeEarnGraceToken(store, "  ", "member-1", 3, 3)).toThrow();
+    expect(() => maybeEarnGraceToken(store, "chat-1", "  ", 3, 3)).toThrow();
   });
 });

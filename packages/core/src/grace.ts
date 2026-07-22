@@ -152,3 +152,38 @@ export function resolveSlip(
   });
   return run();
 }
+
+/**
+ * Grant a Grace Token when sober Streak reaches `graceTokenN` and none is
+ * held yet (T15.3, ADR 0001, spec/stats.md "earn ... re-earn after spent
+ * by reaching N again"). Cap 1: a no-op when a token is already present —
+ * this also makes repeated calls at `currentStreak >= graceTokenN`
+ * idempotent (no double-stack, tech/core-tasks.md T15 Out of scope).
+ *
+ * `currentStreak` is caller-supplied: this module does not walk Check-in
+ * history to compute Streak (that pure algorithm is T18.1 — see
+ * tech/core-tasks.md T15 "Depends on ... T18.1"). Callers pass a T18.1
+ * Streak walk result once it lands, or their own interim sober-run count
+ * until then; this stays correct either way since the rule only compares
+ * the count to `graceTokenN`.
+ *
+ * Returns `true` when a token was newly granted this call.
+ */
+export function maybeEarnGraceToken(
+  store: Store,
+  chatId: string,
+  memberId: string,
+  currentStreak: number,
+  graceTokenN: number,
+): boolean {
+  const chat = requireChatId(chatId);
+  const member = requireMemberId(memberId);
+  if (currentStreak < graceTokenN) return false;
+
+  const run = store.db.transaction((): boolean => {
+    if (hasGraceToken(store, chat, member)) return false;
+    writePresent(store, chat, member, 1);
+    return true;
+  });
+  return run();
+}
