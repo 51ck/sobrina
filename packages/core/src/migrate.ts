@@ -107,6 +107,22 @@ CREATE TABLE IF NOT EXISTS check_ins (
 `);
     },
   },
+  {
+    // T10.5 — Grace Token state per Checklist member (cap 1 = present 0|1).
+    // See tech/core-tasks.md T10.5, ADR 0001, CONTEXT.md Grace Token.
+    id: "006",
+    up(db) {
+      db.exec(`
+CREATE TABLE IF NOT EXISTS grace_tokens (
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  member_id TEXT NOT NULL,
+  present INTEGER NOT NULL DEFAULT 0 CHECK (present IN (0, 1)),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (chat_id, member_id)
+);
+`);
+    },
+  },
 ];
 
 const MIGRATIONS_TABLE = `

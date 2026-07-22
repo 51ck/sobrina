@@ -282,3 +282,57 @@ describe("T10.4 — check_ins migration", () => {
     }
   });
 });
+
+describe("T10.5 — grace_tokens migration", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("creates grace_tokens table", async () => {
+    const store = await freshStore();
+    const row = store.db
+      .query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'grace_tokens'",
+      )
+      .get() as { name: string } | null;
+    expect(row?.name).toBe("grace_tokens");
+  });
+
+  test("stores present/absent (cap 1) per chat member", async () => {
+    const store = await freshStore();
+    store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
+    store.db
+      .query("INSERT INTO grace_tokens (chat_id, member_id) VALUES (?, ?)")
+      .run("chat-1", "member-1");
+
+    const absent = store.db
+      .query(
+        "SELECT present FROM grace_tokens WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { present: number };
+    expect(absent.present).toBe(0);
+
+    store.db
+      .query(
+        "UPDATE grace_tokens SET present = 1 WHERE chat_id = ? AND member_id = ?",
+      )
+      .run("chat-1", "member-1");
+
+    const present = store.db
+      .query(
+        "SELECT present FROM grace_tokens WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { present: number };
+    expect(present.present).toBe(1);
+  });
+
+  test("rejects present outside 0|1 (no stacking)", async () => {
+    const store = await freshStore();
+    store.db.query("INSERT INTO chats (id) VALUES (?)").run("chat-1");
+    expect(() => {
+      store.db
+        .query(
+          "INSERT INTO grace_tokens (chat_id, member_id, present) VALUES (?, ?, ?)",
+        )
+        .run("chat-1", "member-1", 2);
+    }).toThrow();
+  });
+});
