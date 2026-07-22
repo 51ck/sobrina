@@ -49,3 +49,13 @@ export {
   type DayKeySettings,
   type DayStatus,
 } from "./day.ts";
+
+export {
+  hasGraceToken,
+  grantGraceToken,
+  consumeGraceToken,
+  resolveSlip,
+  type SlipResolution,
+  maybeEarnGraceToken,
+  refundGraceToken,
+} from "./grace.ts";
