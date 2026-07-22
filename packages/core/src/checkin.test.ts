@@ -539,3 +539,107 @@ describe("T14.3 — joinAndRecordCheckIn (non-member joins then records)", () =>
     expect(rows.n).toBe(0);
   });
 });
+
+/**
+ * T14.5 — theme close-out. Individual behaviors above (T14.1–T14.4)
+ * already cover each matrix cell in isolation; this block ties them
+ * into one readable pass over the required Done-when matrix
+ * (tech/core-tasks.md T14) plus the one cell not otherwise exercised
+ * from `checkin.ts`: the write path never produces an invented status.
+ * The DB-level CHECK constraint itself is covered separately in
+ * migrate.test.ts T10.4 ("rejects missed/absent and other non-status
+ * values") — that is schema, this is the verb surface.
+ */
+describe("T14.5 — Check-in record rule matrix (close-out)", () => {
+  const { freshStore } = useMigratedStore();
+
+  const ALLOWED_STATUSES = ["sober", "minor_slip", "major_slip"] as const;
+
+  test("full matrix: sober / slip-with-token / slip-without-token / join+record — every write lands only on an allowed status", async () => {
+    const store = await freshStore();
+
+    // Sober write on an open Day → sober, no token spent.
+    joinChecklist(store, "chat-1", "member-sober");
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    const sober = recordCheckIn(store, "chat-1", "member-sober", "2026-07-22", "sober");
+    expect(sober.status).toBe("sober");
+    expect(sober.spentGraceToken).toBe(false);
+
+    // Slip with a held Grace Token → minor_slip, token spent.
+    joinChecklist(store, "chat-1", "member-shielded");
+    grantGraceToken(store, "chat-1", "member-shielded");
+    const shielded = recordCheckIn(store, "chat-1", "member-shielded", "2026-07-22", "slip");
+    expect(shielded.status).toBe("minor_slip");
+    expect(shielded.spentGraceToken).toBe(true);
+
+    // Slip without a token → major_slip.
+    joinChecklist(store, "chat-1", "member-unshielded");
+    const unshielded = recordCheckIn(store, "chat-1", "member-unshielded", "2026-07-22", "slip");
+    expect(unshielded.status).toBe("major_slip");
+    expect(unshielded.spentGraceToken).toBe(false);
+
+    // Non-member Check-in → joins Checklist, then records.
+    const joined = joinAndRecordCheckIn(store, "chat-1", "member-new", "2026-07-22", "sober");
+    expect(isOnChecklist(store, "chat-1", "member-new")).toBe(true);
+    expect(joined.status).toBe("sober");
+
+    for (const checkIn of [sober, shielded, unshielded, joined]) {
+      expect(ALLOWED_STATUSES).toContain(checkIn.status);
+    }
+
+    // No `missed` / `absent` (or anything else) ever reached the table —
+    // exactly the four rows written above, all within the allowed set.
+    const rows = store.db
+      .query("SELECT status FROM check_ins WHERE chat_id = ?")
+      .all("chat-1") as Array<{ status: string }>;
+    expect(rows).toHaveLength(4);
+    for (const row of rows) {
+      expect(ALLOWED_STATUSES).toContain(row.status);
+    }
+  });
+
+  test("full matrix: closed Day rejects both recordCheckIn and joinAndRecordCheckIn, for both intents, without mutating a prior row", async () => {
+    const store = await freshStore();
+    joinChecklist(store, "chat-1", "member-1");
+    ensureOpenDay(store, "chat-1", "2026-07-22");
+    const before = recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "sober");
+    closeDay(store, "chat-1", "2026-07-22");
+
+    expect(() =>
+      recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "sober"),
+    ).toThrow(DayClosedError);
+    expect(() =>
+      recordCheckIn(store, "chat-1", "member-1", "2026-07-22", "slip"),
+    ).toThrow(DayClosedError);
+    expect(() =>
+      joinAndRecordCheckIn(store, "chat-1", "member-2", "2026-07-22", "sober"),
+    ).toThrow(DayClosedError);
+    expect(() =>
+      joinAndRecordCheckIn(store, "chat-1", "member-3", "2026-07-22", "slip"),
+    ).toThrow(DayClosedError);
+
+    const after = store.db
+      .query(
+        `SELECT status, spent_grace_token AS spentGraceToken, created_at AS createdAt, updated_at AS updatedAt
+         FROM check_ins WHERE chat_id = ? AND member_id = ? AND day_key = ?`,
+      )
+      .get("chat-1", "member-1", "2026-07-22") as {
+      status: string;
+      spentGraceToken: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+    expect(after.status).toBe(before.status);
+    expect(after.spentGraceToken).toBe(0);
+    expect(after.createdAt).toBe(before.createdAt);
+    expect(after.updatedAt).toBe(before.updatedAt);
+    // Rejected joins still land on the Checklist (T14.3 behavior) but no
+    // Check-in row is created for either rejected member.
+    expect(isOnChecklist(store, "chat-1", "member-2")).toBe(true);
+    expect(isOnChecklist(store, "chat-1", "member-3")).toBe(true);
+    const rows = store.db
+      .query("SELECT COUNT(*) AS n FROM check_ins")
+      .get() as { n: number };
+    expect(rows.n).toBe(1);
+  });
+});
