@@ -57,4 +57,5 @@ export {
   resolveSlip,
   type SlipResolution,
   maybeEarnGraceToken,
+  refundGraceToken,
 } from "./grace.ts";

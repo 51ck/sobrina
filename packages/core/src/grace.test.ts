@@ -7,6 +7,7 @@ import {
   grantGraceToken,
   hasGraceToken,
   maybeEarnGraceToken,
+  refundGraceToken,
   resolveSlip,
 } from "./grace.ts";
 import { migrate } from "./migrate.ts";
@@ -237,5 +238,52 @@ describe("T15.3 — maybeEarnGraceToken", () => {
     const store = await freshStore();
     expect(() => maybeEarnGraceToken(store, "  ", "member-1", 3, 3)).toThrow();
     expect(() => maybeEarnGraceToken(store, "chat-1", "  ", 3, 3)).toThrow();
+  });
+});
+
+describe("T15.4 — refundGraceToken", () => {
+  const { freshStore } = useMigratedStore();
+
+  test("restores a token spent by resolveSlip, for a late fix to sober", async () => {
+    const store = await freshStore();
+    grantGraceToken(store, "chat-1", "member-1");
+    const spent = resolveSlip(store, "chat-1", "member-1");
+    expect(spent.spentToken).toBe(true);
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(false);
+
+    refundGraceToken(store, "chat-1", "member-1");
+
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+  });
+
+  test("creates the chat if needed, like other verbs", async () => {
+    const store = await freshStore();
+    refundGraceToken(store, "chat-1", "member-1");
+
+    const chat = store.db
+      .query("SELECT 1 AS ok FROM chats WHERE id = ?")
+      .get("chat-1");
+    expect(chat).not.toBeNull();
+  });
+
+  test("cap 1 — refunding when a token is already present (re-earned since) does not double-stack", async () => {
+    const store = await freshStore();
+    grantGraceToken(store, "chat-1", "member-1");
+
+    refundGraceToken(store, "chat-1", "member-1");
+
+    expect(hasGraceToken(store, "chat-1", "member-1")).toBe(true);
+    const rows = store.db
+      .query(
+        "SELECT COUNT(*) AS n FROM grace_tokens WHERE chat_id = ? AND member_id = ?",
+      )
+      .get("chat-1", "member-1") as { n: number };
+    expect(rows.n).toBe(1);
+  });
+
+  test("rejects blank chatId or memberId", async () => {
+    const store = await freshStore();
+    expect(() => refundGraceToken(store, "  ", "member-1")).toThrow();
+    expect(() => refundGraceToken(store, "chat-1", "  ")).toThrow();
   });
 });

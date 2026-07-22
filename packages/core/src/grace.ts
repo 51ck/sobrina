@@ -187,3 +187,23 @@ export function maybeEarnGraceToken(
   });
   return run();
 }
+
+/**
+ * Restore a Grace Token after a late fix (T15.4, ADR 0005, spec/stats.md
+ * "Late fix to sober: refund token if that Check-in spent one"). T17
+ * ("Late fix") is the intended caller: it should invoke this only when
+ * the Check-in being corrected has `spentGraceToken` true (its
+ * `check_ins.spent_grace_token` column, T10.4) *and* the correction's new
+ * status is `sober` — this helper trusts that decision and just restores
+ * the flag. Cap 1: if a token is already present (e.g. re-earned since
+ * the spend), stays present — no double-stack.
+ */
+export function refundGraceToken(
+  store: Store,
+  chatId: string,
+  memberId: string,
+): void {
+  const chat = requireChatId(chatId);
+  const member = requireMemberId(memberId);
+  writePresent(store, chat, member, 1);
+}
