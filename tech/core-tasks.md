@@ -130,11 +130,13 @@ Foundation gives packages, lint/typecheck, env, and `openStore` / migrations. Ph
 
 **Tasks:**
 
-- [ ] **T14.1** Intent → write API: record sober for member + Day key (creates/updates Check-in per product “one status per member per Day”) on an **open** Day
+- [x] **T14.1** Intent → write API: record sober for member + Day key (creates/updates Check-in per product “one status per member per Day”) on an **open** Day
 - [ ] **T14.2** Record slip intent → status via Grace Token rules (calls into T15)
 - [ ] **T14.3** Non-member Check-in: join Checklist then record (single verb or documented composition)
 - [ ] **T14.4** Reject writes when Day is **closed** (caller must use T17); document other reject cases; tests
 - [ ] **T14.5** Tests: sober write; slip with/without token; join+record; closed Day rejected; no `missed`/`absent` status invented
+
+**Implementation note (T14.1):** `recordCheckIn(store, chatId, memberId, dayKey, intent)` in `packages/core/src/checkin.ts` implements `sober` only; `intent: "slip"` is accepted in the type surface (so T14.2 extends the same call sites) but throws until T15's `resolveSlip` is wired in. Requires the member already on the Checklist — throws `NotOnChecklistError` rather than auto-joining, leaving the join+record composition to T14.3. Uses `ensureOpenDay` (not a plain read) so an early Check-in still opens its own Day; a `closed` Day throws `DayClosedError` (early slice of T14.4's full policy). Calls `maybeEarnGraceToken(..., currentStreak = 0, graceTokenN)` per T15's interim note — grants nothing yet since `graceTokenN >= 1`; T14.2/T18.1 should pass the real Streak count once available. See module doc in `checkin.ts` for the full rationale.
 
 ---
 
