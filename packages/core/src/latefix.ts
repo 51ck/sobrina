@@ -8,8 +8,9 @@
  * {@link isLateFixAllowed} (T17.1). It also owns the write verb built on
  * top, {@link correctCheckIn} (T17.2), so the late-fix window and the
  * late-fix write live in one place rather than being split across
- * `checkin.ts` and here. T17.3 (deepened reject-path tests) extends this
- * same verb rather than adding a new one.
+ * `checkin.ts` and here. T17.3 locks the reject-after-fence contract on
+ * this same verb (deepened tests only — see "T17.3 — reject after
+ * late-fix fence" in `latefix.test.ts`; no gate changed).
  *
  * ## Locked semantics (T17.1)
  *
@@ -77,7 +78,7 @@
  * | Day missing (never opened) | `false` | Nothing to fix; not an error — see T19 Day resolution, which treats a non-fixable Day as just another branch. |
  * | Day status `open` | `false` | Late fix is for **closed** Days only; ordinary Check-in is T14. |
  * | Day `closed`, `reminderTime` unset | throws {@link LateFixFenceUnknownError} | Configuration gap, not a normal reject — see "Unknown fence" above. |
- * | Day `closed`, `now` at/after next Reminder | `false` | Past the ADR 0005 fence. |
+ * | Day `closed`, `now` at/after next Reminder | `false` | Past the ADR 0005 fence — `now` **at** the fence rejects too (strict `<` in {@link isLateFixAllowed}, not `<=`). Same-calendar at-fence via {@link correctCheckIn} is locked in T17.2; T17.3 adds overnight + well-after-fence depth on the same verb. |
  * | Day `closed`, `now` strictly before next Reminder | `true` | Allowed. |
  * | Blank `chatId` / `dayKey` | throws plain `Error` | Same "trim then require non-empty" guard used across `@sobri/core` (day.ts, checklist.ts, grace.ts, settings.ts, checkin.ts). |
  *
@@ -116,7 +117,8 @@
  *    `reason` distinguishes the ticket's explicit cases: `"day-missing"`
  *    (never opened — nothing to fix), `"day-open"` (ordinary Check-in is
  *    T14's `recordCheckIn`, not this verb), `"past-fence"` (ADR 0005
- *    window elapsed — the case T17.3 will deepen). `isLateFixAllowed`'s
+ *    window elapsed — same-calendar at-fence in T17.2; overnight and
+ *    well-after-fence depth in T17.3). `isLateFixAllowed`'s
  *    own {@link LateFixFenceUnknownError} (unset `reminderTime`) is not
  *    caught here — it propagates, since that is a configuration gap, not
  *    a normal reject (module doc "Unknown fence").

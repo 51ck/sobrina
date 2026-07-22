@@ -409,3 +409,82 @@ describe("T17.2 — correctCheckIn", () => {
     ).toThrow();
   });
 });
+
+/**
+ * T17.3 — adds the reject-after-fence depth T17.2's own tests don't yet
+ * have, exercised through {@link correctCheckIn} (not just the pure
+ * {@link isLateFixAllowed} helper T17.1 already covers). This is
+ * additive, not a T16.4-style full re-walk of the same-verb matrix:
+ * exact-at-fence and open-Day rejection are already covered by T17.2's
+ * "rejects correction past the late-fix fence" / "rejects correction on
+ * an open Day" tests above and are intentionally not duplicated here.
+ * New here: the overnight-Deadline-Day shape through `correctCheckIn`
+ * (T17.2's tests only used same-calendar settings), and a
+ * sustained-past-fence check (well after, not just the boundary
+ * instant) so the reject isn't only a boundary-flicker artifact. No
+ * production gap surfaced: `correctCheckIn`'s gate 3 already delegates
+ * straight to `isLateFixAllowed`, so the strict-`<` fence, the
+ * overnight-vs-same-calendar derivation, and the no-mutation-before-
+ * throw ordering were already correct (see latefix.ts module doc
+ * "Reject cases").
+ */
+describe("T17.3 — reject after late-fix fence (correctCheckIn)", () => {
+  const { freshStore } = useMigratedStore();
+
+  async function setUpClosedSlipDay(
+    store: Store,
+    settings: { reminderTime: string; deadlineTime: string },
+  ): Promise<void> {
+    getOrCreateChat(store, "chat-1");
+    updateSettings(store, "chat-1", { timezone: "UTC", ...settings });
+    joinChecklist(store, "chat-1", "amy");
+    grantGraceToken(store, "chat-1", "amy");
+    closeDayAtDeadline(store, "chat-1", "2026-07-22"); // silent → minor_slip, token spent
+  }
+
+  test("same-calendar: now well after next Reminder → rejected, no mutation (past the boundary instant T17.2 already covers)", async () => {
+    const store = await freshStore();
+    await setUpClosedSlipDay(store, { reminderTime: "09:00", deadlineTime: "21:00" });
+    const before = getCheckIn(store, "chat-1", "amy", "2026-07-22");
+
+    const wellAfter = new Date("2026-07-25T12:00:00Z"); // days past the fence
+    expect(() =>
+      correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", wellAfter),
+    ).toThrow(LateFixNotAllowedError);
+
+    expect(getCheckIn(store, "chat-1", "amy", "2026-07-22")).toEqual(before);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+  });
+
+  test("overnight Deadline Day (ADR 0002 shape): late fix still OK right after the overnight close", async () => {
+    const store = await freshStore();
+    await setUpClosedSlipDay(store, { reminderTime: "21:00", deadlineTime: "01:00" });
+
+    const rightAfterClose = new Date("2026-07-23T01:00:01Z"); // just past the overnight Deadline
+    const corrected = correctCheckIn(
+      store,
+      "chat-1",
+      "amy",
+      "2026-07-22",
+      "sober",
+      rightAfterClose,
+    );
+
+    expect(corrected.status).toBe("sober");
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(true); // refunded
+  });
+
+  test("overnight Deadline Day (ADR 0002 shape): rejected once that Day's next Reminder has passed, no mutation", async () => {
+    const store = await freshStore();
+    await setUpClosedSlipDay(store, { reminderTime: "21:00", deadlineTime: "01:00" });
+    const before = getCheckIn(store, "chat-1", "amy", "2026-07-22");
+
+    const atNextReminder = new Date("2026-07-23T21:00:00Z"); // that Day's next Reminder
+    expect(() =>
+      correctCheckIn(store, "chat-1", "amy", "2026-07-22", "sober", atNextReminder),
+    ).toThrow(LateFixNotAllowedError);
+
+    expect(getCheckIn(store, "chat-1", "amy", "2026-07-22")).toEqual(before);
+    expect(hasGraceToken(store, "chat-1", "amy")).toBe(false);
+  });
+});
