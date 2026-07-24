@@ -31,7 +31,7 @@ Ledger fairness and Check-in writes use **durable verbs** — no LLM invents sta
 ## Tooling (Phase 1 intent)
 
 - `bun run typecheck` — `tsc --noEmit` across workspaces
-- `bun run lint` — **oxlint** (wired on [foundation-tasks.md](foundation-tasks.md) T3)
+- `bun run lint` — **oxlint** (wired on [`.scratch/foundation/`](../.scratch/foundation/) T3, resolved)
 - Pre-commit hook runs lint + typecheck when hooks land (optional; see foundation T3.3)
 
 Exact oxlint/TypeScript versions and hook path are foundation-board decisions.
@@ -175,4 +175,4 @@ No secrets in git. `.env.example` lists names only.
 
 ## Build gate
 
-If product rules change: update `spec/` (and ADRs) first → this doc if architecture shifts → then code. Tickets: [`tickets.md`](tickets.md).
+If product rules change: update `spec/` (and ADRs) first → this doc if architecture shifts → then code. Tickets: [`.scratch/`](../.scratch/), per [`docs/agents/issue-tracker.md`](../docs/agents/issue-tracker.md).

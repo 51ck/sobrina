@@ -1,12 +1,12 @@
 # Roadmap
 
-Product phases — not build tickets. Phase 1 boards live under `tech/` (foundation, core, telegram, agent, character — see [`tech/tickets.md`](../tech/tickets.md)).
+Product phases — not build tickets. Phase 1 build tickets live under [`.scratch/`](../.scratch/) (foundation, core, telegram, agent, character — see [`docs/agents/issue-tracker.md`](../docs/agents/issue-tracker.md)).
 
 ## Phase 0 — Spec lock (current)
 
 - DOX + `CONTEXT.md` + `spec/` + ADRs
 - Shared understanding from domain grill
-- Character faces + Sobri rename: [character-tasks.md](../tech/character-tasks.md) **T70** (then **T71**)
+- Character faces + Sobri rename: [`.scratch/character/`](../.scratch/character/) **T70** (then **T71**) — resolved
 
 ## Phase 1 — Core + Telegram MVP
 
@@ -20,7 +20,7 @@ Product phases — not build tickets. Phase 1 boards live under `tech/` (foundat
 ## Phase 2 — Memory + conversation depth
 
 - Profile + Diary MD, hybrid injection, recall, Session refactor
-- Diary Character mark on face set/change ([agent-tasks.md](../tech/agent-tasks.md) **T62**)
+- Diary Character mark on face set/change ([`.scratch/agent/issues/13-diary-mark-character-phase-2.md`](../.scratch/agent/issues/13-diary-mark-character-phase-2.md) **T62**)
 - Manners corrections; richer Q&A / full stats
 
 ## Phase 3 — Polish

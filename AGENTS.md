@@ -76,7 +76,21 @@ Concise, operational, stable contracts. Broad rules in parents; concrete details
 - Spec-first for product behavior
 - Caveman communication when workspace rules request it
 - Clean-slate cutover (no sushkobot DB import)
-- Tickets later under `tech/` (not in `spec/`)
+- Tickets live under `.scratch/<feature>/issues/` (not in `spec/`) — see `docs/agents/issue-tracker.md`
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as markdown files under `.scratch/<feature-slug>/` in this repo. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five canonical roles, unchanged. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
 
 ## Child DOX Index
 
